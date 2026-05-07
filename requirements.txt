@@ -1,0 +1,54 @@
+# DisasterReady — Requirements
+# Generated: April 2026
+
+# ── Core Framework ──────────────────────────────────────────────────────────
+fastapi==0.115.0
+uvicorn[standard]==0.29.0
+python-dotenv==1.0.1
+httpx==0.27.0
+requests==2.31.0
+
+# ── AutoGen Multi-Agent ──────────────────────────────────────────────────────
+pyautogen==0.4.0
+
+# ── Google Gemini API ────────────────────────────────────────────────────────
+google-generativeai==0.6.0
+
+# ── Firebase / Google Cloud ───────────────────────────────────────────────────
+firebase-admin==6.5.0
+
+# ── Geospatial ───────────────────────────────────────────────────────────────
+geopandas==0.14.4
+shapely>=2.0.4
+pyproj>=3.6.1
+
+# ── Machine Learning ─────────────────────────────────────────────────────────
+scikit-learn>=1.4.2
+numpy>=1.26.4
+pandas>=2.2.2
+joblib==1.4.2
+
+# ── Notification Channels ─────────────────────────────────────────────────────
+twilio==9.0.5
+
+# ── Data Parsing ──────────────────────────────────────────────────────────────
+feedparser==6.0.11          # BNPB RSS feed parsing
+beautifulsoup4==4.12.3
+lxml==5.2.2
+
+# ── Async & Scheduling ────────────────────────────────────────────────────────
+apscheduler==3.10.4
+aiohttp==3.9.5
+asyncio-mqtt==0.16.2
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+pydantic==2.7.1
+python-multipart==0.0.9
+rich==13.7.1                # Beautiful terminal output for demo
+colorama==0.4.6
+tabulate==0.9.0
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+pytest==8.2.0
+pytest-asyncio==0.23.6
+pytest-mock==3.14.0
