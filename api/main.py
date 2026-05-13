@@ -358,44 +358,39 @@ async def get_field_reports(limit: int = 50):
 @app.post("/api/demo/send-real-notification")
 async def send_demo_notification():
     """
-    Kirim notifikasi Telegram nyata ke nomor demo (DEMO_TELEGRAM_CHAT_ID di .env).
+    Kirim notifikasi Telegram nyata ke nomor demo (TELEGRAM_DEMO_CHAT_ID di .env).
     Digunakan untuk demonstrasi live bahwa sistem benar-benar mengirim notifikasi.
     """
     import os
-    from core.notification_dispatcher import NotificationDispatcher
+    from core.telegram_notifier import get_telegram_notifier
 
-    demo_chat_id = os.getenv("DEMO_TELEGRAM_CHAT_ID")
+    demo_chat_id = os.getenv("TELEGRAM_DEMO_CHAT_ID")
     if not demo_chat_id:
         raise HTTPException(
             status_code=400,
-            detail="DEMO_TELEGRAM_CHAT_ID belum diset di .env. "
+            detail="TELEGRAM_DEMO_CHAT_ID belum diset di .env. "
                    "Isi dengan chat_id Telegram penerima demo."
         )
 
-    dispatcher = NotificationDispatcher(simulation_mode=True)
-    if not dispatcher._telegram_bot:
+    notifier = get_telegram_notifier()
+    if not notifier.is_configured:
         raise HTTPException(
             status_code=400,
             detail="TELEGRAM_BOT_TOKEN belum dikonfigurasi. Lihat panduan di .env.example."
         )
 
-    demo_message = (
-        "⚠️ <b>PERINGATAN DINI BENCANA</b> \n"
-        "🚨 <b>DisasterReady — Demo Notifikasi Nyata</b>\n\n"
-        "🌧 <b>Status BMKG: SIAGA</b>\n"
-        "📍 Wilayah: Bogor Tengah, Ciawi, Cisarua\n"
-        "🌧 Curah hujan: 290–310 mm/hari\n\n"
-        "❗️ <b>TINDAKAN SEGERA:</b>\n"
-        "1. Pindahkan barang berharga ke tempat tinggi\n"
-        "2. Siapkan tas darurat (dokumen, obat, air)\n"
-        "3. Ikuti arahan relawan PMI/Basarnas\n"
-        "4. Hubungi BPBD: 119 / 021-5656561\n\n"
-        "✅ Pesan ini dikirim otomatis oleh sistem DisasterReady"
+    result = await notifier.send_disaster_alert(
+        chat_id=demo_chat_id,
+        district_name="Bogor Tengah, Ciawi, Cisarua",
+        alert_level="Siaga",
+        rainfall_mm=290.0,
+        disaster_type="banjir",
+        affected_count=1240,
+        vulnerable_count=312,
     )
 
-    result = await dispatcher.send_demo_telegram(demo_chat_id, demo_message)
-    if result["status"] == "error":
-        raise HTTPException(status_code=500, detail=result["detail"])
+    if not result.success:
+        raise HTTPException(status_code=500, detail=result.error)
 
     firebase.log_action(
         agent_name="DemoSystem",
@@ -406,7 +401,151 @@ async def send_demo_notification():
     return {
         "status": "sent",
         "message": f"✅ Notifikasi demo berhasil dikirim ke Telegram (chat_id: {demo_chat_id})",
-        "preview": demo_message[:100] + "...",
+        "message_id": result.message_id,
+    }
+
+
+# ── Telegram Endpoints ────────────────────────────────────────────────────────
+@app.get("/api/telegram/status")
+async def get_telegram_status():
+    """
+    Cek status koneksi Telegram Bot.
+    Gunakan endpoint ini untuk verifikasi token sebelum demo.
+    """
+    import os
+    from core.telegram_notifier import get_telegram_notifier
+
+    notifier = get_telegram_notifier()
+    if not notifier.is_configured:
+        return {
+            "configured": False,
+            "message": "TELEGRAM_BOT_TOKEN belum diset. Tambahkan ke file .env",
+        }
+
+    bot_info = await notifier.test_connection()
+    demo_chat_id = os.getenv("TELEGRAM_DEMO_CHAT_ID", "")
+    return {
+        "configured": True,
+        "bot_info": bot_info,
+        "demo_chat_id_set": bool(demo_chat_id),
+        "demo_chat_id_preview": demo_chat_id[:6] + "..." if demo_chat_id else None,
+    }
+
+
+@app.post("/api/telegram/test")
+async def test_telegram_connection():
+    """
+    Test koneksi Telegram Bot dan kirim pesan test ke TELEGRAM_DEMO_CHAT_ID.
+    Gunakan endpoint ini untuk verifikasi setup sebelum demo.
+    """
+    import os
+    from core.telegram_notifier import get_telegram_notifier
+
+    demo_chat_id = os.getenv("TELEGRAM_DEMO_CHAT_ID")
+    if not demo_chat_id:
+        raise HTTPException(
+            status_code=400,
+            detail="TELEGRAM_DEMO_CHAT_ID belum diset di .env"
+        )
+
+    notifier = get_telegram_notifier()
+    if not notifier.is_configured:
+        raise HTTPException(
+            status_code=400,
+            detail="TELEGRAM_BOT_TOKEN belum dikonfigurasi"
+        )
+
+    bot_info = await notifier.test_connection()
+    if not bot_info.get("ok"):
+        raise HTTPException(status_code=500, detail=f"Bot error: {bot_info.get('error')}")
+
+    # Kirim pesan test
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M")
+    test_msg = (
+        f"✅ <b>DisasterReady — Test Koneksi</b>\n\n"
+        f"Bot <b>{bot_info['bot_username']}</b> berhasil terhubung!\n"
+        f"Sistem siap mengirim notifikasi early warning bencana.\n\n"
+        f"<i>⏰ {now} WIB</i>"
+    )
+    result = await notifier.send_message(chat_id=demo_chat_id, message=test_msg)
+
+    if not result.success:
+        raise HTTPException(status_code=500, detail=result.error)
+
+    return {
+        "status": "ok",
+        "bot_username": bot_info["bot_username"],
+        "message": f"✅ Pesan test berhasil dikirim ke chat_id {demo_chat_id}",
+        "message_id": result.message_id,
+    }
+
+
+@app.post("/api/telegram/send-alert")
+async def send_telegram_alert(payload: dict = Body(...)):
+    """
+    Kirim notifikasi peringatan dini bencana via Telegram.
+
+    Body JSON:
+    {
+      "chat_id": "-100xxx",          // opsional, default ke TELEGRAM_DEMO_CHAT_ID
+      "district_name": "Bogor Tengah",
+      "alert_level": "Siaga",         // Awas / Siaga / Waspada
+      "rainfall_mm": 290,
+      "disaster_type": "banjir",      // banjir / longsor / cuaca_ekstrem / gempa
+      "affected_count": 1240,         // opsional
+      "vulnerable_count": 312         // opsional
+    }
+    """
+    import os
+    from core.telegram_notifier import get_telegram_notifier
+
+    notifier = get_telegram_notifier()
+    if not notifier.is_configured:
+        raise HTTPException(
+            status_code=400,
+            detail="TELEGRAM_BOT_TOKEN belum dikonfigurasi. Set di .env"
+        )
+
+    chat_id = payload.get("chat_id") or os.getenv("TELEGRAM_DEMO_CHAT_ID")
+    if not chat_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Sertakan 'chat_id' di body atau set TELEGRAM_DEMO_CHAT_ID di .env"
+        )
+
+    district_name = payload.get("district_name", "Tidak diketahui")
+    alert_level = payload.get("alert_level", "Waspada")
+    rainfall_mm = float(payload.get("rainfall_mm", 0))
+    disaster_type = payload.get("disaster_type", "banjir")
+    affected_count = int(payload.get("affected_count", 0))
+    vulnerable_count = int(payload.get("vulnerable_count", 0))
+
+    result = await notifier.send_disaster_alert(
+        chat_id=chat_id,
+        district_name=district_name,
+        alert_level=alert_level,
+        rainfall_mm=rainfall_mm,
+        disaster_type=disaster_type,
+        affected_count=affected_count,
+        vulnerable_count=vulnerable_count,
+    )
+
+    if not result.success:
+        raise HTTPException(status_code=500, detail=result.error)
+
+    firebase.log_action(
+        agent_name="TelegramAPI",
+        action="alert_sent",
+        data={"chat_id": chat_id, "district": district_name, "level": alert_level},
+        result="success"
+    )
+    return {
+        "status": "sent",
+        "chat_id": chat_id,
+        "message_id": result.message_id,
+        "district_name": district_name,
+        "alert_level": alert_level,
     }
 
 

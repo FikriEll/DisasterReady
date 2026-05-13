@@ -25,6 +25,32 @@ logger = logging.getLogger(__name__)
 ORS_API_KEY = os.getenv("OPENROUTESERVICE_API_KEY", "")
 ORS_BASE_URL = os.getenv("ORS_BASE_URL", "https://api.openrouteservice.org")
 
+# Validasi key ORS: harus diisi dan bukan placeholder
+_ORS_KEY_VALID = bool(ORS_API_KEY) and not ORS_API_KEY.startswith("eyJhbGciOiJIUzI1NiJ9...") and len(ORS_API_KEY) > 20
+if not _ORS_KEY_VALID:
+    logger.info("⚠️ ORS API Key tidak valid/belum diset. Routing akan menggunakan estimasi Haversine.")
+
+EVACUATION_POINTS = {
+    "bogor_utara": {"name": "Balai Kota Bogor", "lat": -6.59444, "lon": 106.78917},
+    "dramaga": {"name": "Kampus IPB Dramaga (Gedung Rektorat)", "lat": -6.5583, "lon": 106.7314},
+    "ciawi": {"name": "RSUD Ciawi", "lat": -6.6533, "lon": 106.8456},
+    "cibinong": {"name": "Stadion Pakansari", "lat": -6.4958, "lon": 106.8294},
+    "citeureup": {"name": "Kantor Kecamatan Citeureup", "lat": -6.4912, "lon": 106.8778},
+    "babakan_madang": {"name": "Sentul International Convention Center", "lat": -6.5683, "lon": 106.8525},
+}
+
+def get_nearest_evacuation_point(district_id: str, resident_lat: float, resident_lon: float) -> dict:
+    """Mendapatkan titik evakuasi terdekat, fallback ke Balai Desa jika tidak ada mapping."""
+    if district_id in EVACUATION_POINTS:
+        return EVACUATION_POINTS[district_id]
+    
+    # Fallback default point 1.5km to the north
+    return {
+        "name": "Balai Desa / Titik Kumpul Darurat",
+        "lat": resident_lat + 0.0135,
+        "lon": resident_lon,
+    }
+
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Hitung jarak haversine (km) antara dua titik GPS."""
@@ -94,7 +120,7 @@ async def get_route(
         dict dengan distance_km, duration_minutes, geometry (polyline)
         None jika API tidak tersedia (fallback ke estimasi haversine)
     """
-    if not ORS_API_KEY:
+    if not _ORS_KEY_VALID:
         # Fallback: estimasi berbasis haversine (tidak ada route geometry)
         dist = haversine_distance(from_lat, from_lon, to_lat, to_lon)
         return {
@@ -133,6 +159,27 @@ async def get_route(
             "geometry": None,
             "source": "haversine_estimate",
         }
+
+async def get_evacuation_route(lat: float, lon: float, district_id: str) -> dict:
+    """
+    Hitung rute evakuasi dari titik warga ke titik kumpul terdekat.
+    Menggunakan Haversine untuk kalkulasi massal (ORS free-tier terlalu ketat untuk 1000+ warga).
+    ORS hanya dipakai untuk routing relawan (jumlah lebih sedikit).
+    """
+    evac_point = get_nearest_evacuation_point(district_id, lat, lon)
+    dist = haversine_distance(lat, lon, evac_point["lat"], evac_point["lon"])
+
+    return {
+        "point_name": evac_point["name"],
+        "point_lat": evac_point["lat"],
+        "point_lon": evac_point["lon"],
+        "route_info": {
+            "distance_km": round(dist, 2),
+            "duration_minutes": round(dist * 60 / 5, 1),  # asumsi jalan kaki 5 km/jam
+            "geometry": None,
+            "source": "haversine_estimate",
+        }
+    }
 
 
 def create_risk_geojson(

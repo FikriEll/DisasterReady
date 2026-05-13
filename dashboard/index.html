@@ -1,444 +1,352 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DisasterReady — Sistem Koordinasi Respons Bencana</title>
-  <meta name="description" content="Sistem multi-agent otonom untuk early warning dan koordinasi respons bencana Indonesia. Memantau BMKG, memprediksi risiko, dan mengirim notifikasi ke kelompok rentan." />
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PANTARA Bencana - Command Center</title>
 
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 
-  <!-- Leaflet.js Map -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Leaflet.js Map -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
-  <link rel="stylesheet" href="css/style.css" />
+<!-- We will use Tailwind instead of style.css but we can still import it if there are specific overrides -->
+<link rel="stylesheet" href="css/style.css" />
+
+<script id="tailwind-config">
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      "colors": {
+              "primary-fixed": "#ffdad5",
+              "on-primary-fixed": "#410001",
+              "surface": "#f9f9ff",
+              "primary": "#b5110e",
+              "on-error-container": "#93000a",
+              "on-surface": "#181c23",
+              "on-secondary-fixed-variant": "#004493",
+              "on-secondary": "#ffffff",
+              "on-tertiary-container": "#f6f9ff",
+              "secondary-fixed-dim": "#adc7ff",
+              "surface-container": "#ebedf9",
+              "on-tertiary-fixed": "#001e30",
+              "background": "#f9f9ff",
+              "tertiary-fixed": "#cbe6ff",
+              "surface-container-low": "#f1f3fe",
+              "surface-container-highest": "#dfe2ed",
+              "inverse-on-surface": "#eef0fb",
+              "primary-container": "#d93025",
+              "on-tertiary": "#ffffff",
+              "on-background": "#181c23",
+              "on-tertiary-fixed-variant": "#004b71",
+              "inverse-surface": "#2c3039",
+              "surface-dim": "#d7dae5",
+              "on-primary-container": "#fff8f7",
+              "outline": "#906f6b",
+              "on-surface-variant": "#5c403c",
+              "tertiary-container": "#0079b3",
+              "on-secondary-fixed": "#001a41",
+              "error": "#ba1a1a",
+              "on-secondary-container": "#fefcff",
+              "secondary": "#0058bb",
+              "surface-tint": "#bb1713",
+              "surface-container-lowest": "#ffffff",
+              "on-error": "#ffffff",
+              "surface-container-high": "#e5e8f3",
+              "primary-fixed-dim": "#ffb4a9",
+              "tertiary-fixed-dim": "#8fcdff",
+              "error-container": "#ffdad6",
+              "tertiary": "#005f8e",
+              "secondary-fixed": "#d8e2ff",
+              "surface-variant": "#dfe2ed",
+              "secondary-container": "#1471e6",
+              "outline-variant": "#e5beb8",
+              "inverse-primary": "#ffb4a9",
+              "surface-bright": "#f9f9ff",
+              "on-primary": "#ffffff",
+              "on-primary-fixed-variant": "#930004"
+      },
+      "borderRadius": {
+              "DEFAULT": "0.125rem",
+              "lg": "0.25rem",
+              "xl": "0.5rem",
+              "full": "0.75rem"
+      },
+      "spacing": {
+              "md": "24px",
+              "sm": "16px",
+              "gutter": "20px",
+              "margin-mobile": "16px",
+              "xl": "48px",
+              "margin-desktop": "32px",
+              "base": "4px",
+              "xs": "8px",
+              "lg": "32px"
+      },
+      "fontFamily": {
+              "headline-lg": ["Inter"],
+              "label-md": ["Inter"],
+              "body-lg": ["Inter"],
+              "headline-lg-mobile": ["Inter"],
+              "body-md": ["Inter"],
+              "display-lg": ["Inter"],
+              "status-sm": ["Inter"],
+              "title-md": ["Inter"]
+      },
+      "fontSize": {
+              "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
+              "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+              "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+              "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+              "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+              "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+              "status-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+              "title-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+      }
+    },
+  },
+}
+</script>
 </head>
-<body>
-  <!-- ── Sidebar ──────────────────────────────────────────────────── -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <div class="logo">
-        <div class="logo-icon">🚨</div>
-        <div class="logo-text">
-          <span class="logo-title">DisasterReady</span>
-          <span class="logo-sub">Multi-Agent AI System</span>
-        </div>
-      </div>
+<body class="bg-background text-on-background font-body-md min-h-screen flex">
+<!-- SideNavBar -->
+<nav class="flex bg-surface-container border-r border-outline-variant docked left-0 h-full w-64 fixed top-16 bottom-0 flex-col z-40">
+<div class="p-gutter border-b border-outline-variant flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center overflow-hidden shrink-0 text-2xl">
+🚨
+</div>
+<div>
+<h2 class="font-title-md text-title-md text-on-surface-variant">HQ COMMAND</h2>
+<p class="font-label-md text-label-md text-on-surface-variant opacity-70">Sistem Aktif</p>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto py-sm flex flex-col gap-xs">
+<a class="flex items-center gap-3 bg-secondary-container text-on-secondary-container rounded-lg px-4 py-3 mx-2 hover:bg-surface-container-highest transition-all duration-150 nav-link" href="#" id="nav-dashboard" onclick="showView('dashboard')">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-label-md text-label-md">Command Center</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-highest rounded-lg px-4 py-3 mx-2 transition-all nav-link" href="#" id="nav-audit" onclick="showView('audit')">
+<span class="material-symbols-outlined">history_edu</span>
+<span class="font-label-md text-label-md">Audit Logs</span>
+</a>
+
+<div class="px-4 py-sm mt-sm">
+<button id="btn-simulate" onclick="triggerSimulation()" class="w-full bg-primary text-on-primary font-label-md text-label-md py-3 rounded-lg uppercase tracking-wide hover:bg-primary-container transition-colors duration-200">
+DEPLOY RAPID RESPONSE
+</button>
+</div>
+<div class="px-4 py-1">
+<button id="btn-reset" onclick="resetSimulation()" class="w-full bg-surface-variant text-on-surface-variant border border-outline-variant font-label-md text-label-md py-2 rounded-lg uppercase tracking-wide hover:bg-surface-container-highest transition-colors duration-200">
+RESET OP
+</button>
+</div>
+<div class="px-4 py-1 mt-2">
+  <button id="btn-confirm" onclick="confirmAssignment()" class="w-full bg-secondary text-on-secondary font-label-md text-label-md py-2 rounded-lg uppercase tracking-wide hover:bg-secondary-container transition-colors duration-200">
+  CONFIRM FIELD OP
+  </button>
+</div>
+</div>
+</nav>
+
+<div class="flex-1 flex flex-col ml-64 min-w-0">
+<!-- TopAppBar -->
+<header class="bg-surface border-b border-outline-variant docked full-width top-0 flex justify-between items-center w-full px-gutter h-16 z-50 sticky">
+<div class="flex items-center gap-4">
+<span class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary uppercase tracking-tighter">PANTARA Bencana</span>
+</div>
+<div class="flex items-center gap-gutter">
+<div id="alert-banner" class="hidden items-center gap-2 px-3 py-1 bg-error-container border border-error text-on-error-container rounded-full font-label-md text-label-md animate-pulse">
+  <span class="w-2 h-2 rounded-full bg-primary"></span>
+  <span id="alert-banner-text">Active Disaster</span>
+</div>
+<div id="time-display" class="font-body-md text-body-md text-on-surface-variant hidden md:block">
+  --:--:--
+</div>
+
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200" id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle Dark Mode">
+<span class="material-symbols-outlined" id="theme-icon">dark_mode</span>
+</button>
+</div>
+</header>
+
+<!-- Main Content Canvas -->
+<main class="flex-1 p-gutter overflow-y-auto flex-col gap-gutter bg-background view flex" id="view-dashboard">
+<!-- Key Metrics Container -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
+<!-- Metric 1 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-sm flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-error-container text-on-error-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant">Active Alerts</p>
+<p class="font-headline-lg text-headline-lg text-primary" id="m-active-disasters">0</p>
+</div>
+</div>
+<!-- Metric 2 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-sm flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">campaign</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant">Residents Notified</p>
+<p class="font-headline-lg text-headline-lg text-on-surface" id="m-notified">0</p>
+</div>
+</div>
+<!-- Metric 3 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-sm flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">local_police</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant">Volunteers Deployed</p>
+<p class="font-headline-lg text-headline-lg text-on-surface" id="m-volunteers">0</p>
+</div>
+</div>
+<!-- Metric 4 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-sm flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center shrink-0 relative">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">health_and_safety</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant">Critical Rescues</p>
+<p class="font-headline-lg text-headline-lg text-on-surface" id="m-vulnerable">0</p>
+</div>
+</div>
+</div>
+<!-- Main Layout: Map & Sidebar -->
+<div class="flex flex-col lg:flex-row gap-gutter flex-1 min-h-[600px]">
+<!-- Large Interactive GIS Map Area -->
+<div class="flex-[3] bg-surface-container-lowest border border-outline-variant rounded-lg flex flex-col overflow-hidden relative">
+<div class="p-sm border-b border-outline-variant flex justify-between items-center bg-surface-container-low z-10">
+<h3 class="font-title-md text-title-md text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">map</span>
+                            Tactical Overview Map
+                        </h3>
+<div class="flex gap-2">
+<span class="px-2 py-1 rounded bg-surface border border-outline-variant text-status-sm font-status-sm text-on-surface-variant">Layers: Risk Zones</span>
+<span class="px-2 py-1 rounded bg-surface border border-outline-variant text-status-sm font-status-sm text-on-surface-variant">Live: Vol. Positions</span>
+</div>
+</div>
+<!-- Pipeline Sub-Header -->
+<div class="bg-surface-container-lowest border-b border-outline-variant px-4 py-2 flex items-center justify-between text-xs font-semibold z-10 shrink-0">
+  <div class="flex items-center gap-2">
+    <span class="text-on-surface-variant uppercase tracking-wider text-[10px]">AI Pipeline:</span>
+    <div class="flex items-center gap-1">
+      <div id="status-monitor" class="px-2 py-1 rounded-full bg-surface-variant text-on-surface-variant transition-colors border border-outline-variant">Monitor</div>
+      <span class="material-symbols-outlined text-[12px] text-outline-variant">arrow_forward</span>
+      <div id="status-prediction" class="px-2 py-1 rounded-full bg-surface-variant text-on-surface-variant transition-colors border border-outline-variant">Predict</div>
+      <span class="material-symbols-outlined text-[12px] text-outline-variant">arrow_forward</span>
+      <div id="status-earlywarning" class="px-2 py-1 rounded-full bg-surface-variant text-on-surface-variant transition-colors border border-outline-variant">Warn</div>
+      <span class="material-symbols-outlined text-[12px] text-outline-variant">arrow_forward</span>
+      <div id="status-allocation" class="px-2 py-1 rounded-full bg-surface-variant text-on-surface-variant transition-colors border border-outline-variant">Allocate</div>
+      <span class="material-symbols-outlined text-[12px] text-outline-variant">arrow_forward</span>
+      <div id="status-communication" class="px-2 py-1 rounded-full bg-surface-variant text-on-surface-variant transition-colors border border-outline-variant">Report</div>
     </div>
+  </div>
+</div>
+<!-- Map Canvas Placeholder -->
+<div id="map" class="flex-1 bg-surface-dim relative overflow-hidden" style="z-index: 1;">
+</div>
+</div>
+<!-- BMKG Live Feed Sidebar -->
+<div class="flex-1 bg-surface-container-lowest border border-outline-variant rounded-lg flex flex-col max-h-[600px]">
+<div class="p-sm border-b border-outline-variant bg-surface-container-low flex items-center gap-2 shrink-0">
+<span class="material-symbols-outlined text-primary animate-pulse">sensors</span>
+<h3 class="font-title-md text-title-md text-on-surface">BMKG Live Feed</h3>
+</div>
+<div id="alert-feed" class="flex-1 overflow-y-auto p-sm flex flex-col gap-sm">
+<div class="text-on-surface-variant text-sm text-center py-8">Menunggu data simulasi...</div>
+</div>
+</div>
+</div>
+<!-- Active Disaster Events Table -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden flex flex-col">
+<div class="p-sm border-b border-outline-variant bg-surface-container-low flex justify-between items-center">
+<h3 class="font-title-md text-title-md text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant">view_list</span>
+                        Active Disaster Events Log
+                    </h3>
+<span class="font-label-md text-label-md text-secondary" id="alert-total-count">0 alert</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-outline-variant bg-surface-container-lowest font-label-md text-label-md text-on-surface-variant">
+<th class="p-3 font-semibold">Waktu</th>
+<th class="p-3 font-semibold">Event ID</th>
+<th class="p-3 font-semibold">Level</th>
+<th class="p-3 font-semibold">Lokasi</th>
+<th class="p-3 font-semibold">Ternotifikasi</th>
+<th class="p-3 font-semibold">Kritis</th>
+</tr>
+</thead>
+<tbody id="alert-table-body" class="font-body-md text-body-md text-on-surface">
+<tr><td colspan="6" class="p-4 text-center text-on-surface-variant">Jalankan simulasi untuk melihat alert</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
 
-    <nav class="sidebar-nav">
-      <button class="nav-item active" id="nav-dashboard" onclick="showView('dashboard')">
-        <span class="nav-icon">🗺️</span>
-        <span>Dashboard</span>
-      </button>
-      <button class="nav-item" id="nav-agents" onclick="showView('agents')">
-        <span class="nav-icon">🤖</span>
-        <span>Status Agen</span>
-      </button>
-      <button class="nav-item" id="nav-alerts" onclick="showView('alerts')">
-        <span class="nav-icon">🔔</span>
-        <span>Alert Log</span>
-        <span class="badge" id="alert-badge">0</span>
-      </button>
-      <button class="nav-item" id="nav-audit" onclick="showView('audit')">
-        <span class="nav-icon">📋</span>
-        <span>Audit Log</span>
-      </button>
-      <button class="nav-item" id="nav-simulation" onclick="showView('simulation')">
-        <span class="nav-icon">▶️</span>
-        <span>Simulasi Demo</span>
-      </button>
-    </nav>
-
-    <div class="sidebar-status">
-      <div class="status-dot" id="status-dot"></div>
-      <span id="system-status-text">Sistem Aktif</span>
+<main class="flex-1 p-gutter overflow-y-auto flex-col gap-gutter bg-background view hidden" id="view-audit">
+  <div class="bg-surface-container-lowest border border-outline-variant rounded-lg flex flex-col min-h-[600px]">
+    <div class="p-sm border-b border-outline-variant bg-surface-container-low flex items-center gap-2">
+      <span class="material-symbols-outlined text-on-surface-variant">history_edu</span>
+      <h3 class="font-title-md text-title-md text-on-surface">System Audit Logs</h3>
     </div>
-  </aside>
+    <div id="audit-feed" class="flex-1 overflow-y-auto p-sm flex flex-col gap-2">
+      <div class="text-on-surface-variant text-sm text-center py-8">Menunggu log sistem...</div>
+    </div>
+  </div>
+</main>
+</div>
 
-  <!-- ── Main Content ─────────────────────────────────────────────── -->
-  <main class="main-content">
+<!-- AI Report Side Panel -->
+<div id="report-container" class="fixed inset-y-0 right-0 w-full max-w-md bg-surface-container-lowest shadow-2xl border-l border-outline-variant transform translate-x-full transition-transform duration-300 z-[70] flex flex-col">
+  <div class="p-4 border-b border-outline-variant bg-surface-container-low flex justify-between items-center shrink-0">
+    <div class="flex items-center gap-2 text-primary">
+      <span class="material-symbols-outlined animate-pulse">smart_toy</span>
+      <h3 class="font-title-md text-title-md text-on-surface">Gemini AI Report</h3>
+    </div>
+    <button onclick="closeReport()" class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-variant transition-colors">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+  </div>
+  <div class="flex-1 overflow-y-auto p-4 bg-background">
+    <pre id="report-content" class="whitespace-pre-wrap font-body-md text-body-md text-on-surface-variant font-sans">Menunggu laporan...</pre>
+  </div>
+  <div class="p-4 border-t border-outline-variant bg-surface-container-lowest shrink-0">
+    <button class="w-full bg-primary text-on-primary font-label-md py-2 rounded-lg hover:bg-primary-container transition-colors shadow flex items-center justify-center gap-2">
+      <span class="material-symbols-outlined text-[18px]">share</span> Broadcast Report
+    </button>
+  </div>
+</div>
 
-    <!-- Header -->
-    <header class="top-bar">
-      <div class="top-bar-left">
-        <h1 class="page-title" id="page-title">Dashboard Real-Time</h1>
-        <span class="page-sub" id="page-sub">Monitoring BMKG & Koordinasi Respons Bencana</span>
-      </div>
-      <div class="top-bar-right">
-        <div class="alert-banner" id="alert-banner" style="display:none">
-          <span class="pulse-dot"></span>
-          <span id="alert-banner-text">Bencana Aktif</span>
-        </div>
-        <div class="time-display" id="time-display">--:--:--</div>
-      </div>
-    </header>
+<!-- Simulation Results Toast -->
+<div id="sim-results" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 z-[60] hidden">
+  <span class="material-symbols-outlined text-primary">task_alt</span>
+  <span class="font-label-md">Pipeline Executed: <span id="r-elapsed" class="text-inverse-primary font-bold">--</span></span>
+  <span class="w-px h-4 bg-outline-variant opacity-50"></span>
+  <div class="flex gap-3 text-xs text-on-surface-variant">
+    <span>Notified: <strong id="r-notified" class="text-inverse-on-surface">--</strong></span>
+    <span>Critical: <strong id="r-critical" class="text-error">--</strong></span>
+    <span>Deployed: <strong id="r-volunteers" class="text-secondary-fixed">--</strong></span>
+  </div>
+</div>
 
-    <!-- ── VIEW: Dashboard ─────────────────────────────────────────── -->
-    <section class="view active" id="view-dashboard">
-      <!-- Metric Cards -->
-      <div class="metrics-grid">
-        <div class="metric-card card-danger" id="mc-disaster">
-          <div class="metric-icon">⛔</div>
-          <div class="metric-body">
-            <div class="metric-value" id="m-active-disasters">0</div>
-            <div class="metric-label">Bencana Aktif</div>
-          </div>
-        </div>
-        <div class="metric-card card-warning" id="mc-notified">
-          <div class="metric-icon">📢</div>
-          <div class="metric-body">
-            <div class="metric-value" id="m-notified">0</div>
-            <div class="metric-label">Warga Ternotifikasi</div>
-          </div>
-        </div>
-        <div class="metric-card card-critical" id="mc-vulnerable">
-          <div class="metric-icon">🏷️</div>
-          <div class="metric-body">
-            <div class="metric-value" id="m-vulnerable">0</div>
-            <div class="metric-label">Rentan Diprioritaskan</div>
-          </div>
-        </div>
-        <div class="metric-card card-info" id="mc-volunteers">
-          <div class="metric-icon">🦺</div>
-          <div class="metric-body">
-            <div class="metric-value" id="m-volunteers">0</div>
-            <div class="metric-label">Relawan Ditugaskan</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Map + Right Panel -->
-      <div class="map-panel-layout">
-        <!-- Map -->
-        <div class="map-container">
-          <div class="map-header">
-            <h2>🗺️ Peta Risiko Real-Time</h2>
-            <div class="map-legend">
-              <span class="legend-item"><span class="legend-dot dot-critical"></span>Kritis</span>
-              <span class="legend-item"><span class="legend-dot dot-high"></span>Tinggi</span>
-              <span class="legend-item"><span class="legend-dot dot-medium"></span>Sedang</span>
-              <span class="legend-item"><span class="legend-dot dot-safe"></span>Aman</span>
-            </div>
-          </div>
-          <div id="map"></div>
-          <div class="map-attribution">
-            Peta: © OpenStreetMap contributors | Data: BMKG Open API
-          </div>
-        </div>
-
-        <!-- Right Panel -->
-        <div class="right-panel">
-          <!-- Live Alert Feed -->
-          <div class="panel-card">
-            <div class="panel-card-header">
-              <h3>🔴 Live Alert Feed</h3>
-              <span class="live-badge">LIVE</span>
-            </div>
-            <div class="alert-feed" id="alert-feed">
-              <div class="empty-state">Menunggu data simulasi...</div>
-            </div>
-          </div>
-
-          <!-- Vulnerability Breakdown -->
-          <div class="panel-card">
-            <div class="panel-card-header">
-              <h3>📊 Prioritas Notifikasi</h3>
-            </div>
-            <div class="priority-chart-container">
-              <canvas id="priorityChart" height="180"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── VIEW: Agent Status ───────────────────────────────────────── -->
-    <section class="view" id="view-agents">
-      <div class="agents-grid">
-        <div class="agent-card" id="agent-monitor">
-          <div class="agent-header">
-            <div class="agent-icon">🔍</div>
-            <div class="agent-info">
-              <div class="agent-name">Monitor Agent</div>
-              <div class="agent-role">Polling BMKG API</div>
-            </div>
-            <div class="agent-status-badge idle" id="status-monitor">IDLE</div>
-          </div>
-          <div class="agent-details">
-            <div class="agent-stat"><span>Interval</span><span>5 menit</span></div>
-            <div class="agent-stat"><span>Sumber</span><span>BMKG Open API</span></div>
-            <div class="agent-stat"><span>Threshold</span><span>≥50mm/hari</span></div>
-          </div>
-          <div class="agent-log" id="log-monitor">Menunggu trigger...</div>
-        </div>
-
-        <div class="agent-card" id="agent-prediction">
-          <div class="agent-header">
-            <div class="agent-icon">🗺️</div>
-            <div class="agent-info">
-              <div class="agent-name">Prediction Agent</div>
-              <div class="agent-role">Peta Risiko Kecamatan</div>
-            </div>
-            <div class="agent-status-badge idle" id="status-prediction">IDLE</div>
-          </div>
-          <div class="agent-details">
-            <div class="agent-stat"><span>Model</span><span>Rule-based + BNPB</span></div>
-            <div class="agent-stat"><span>Input</span><span>Curah hujan + DEMNAS</span></div>
-            <div class="agent-stat"><span>Output</span><span>GeoJSON peta risiko</span></div>
-          </div>
-          <div class="agent-log" id="log-prediction">Menunggu data BMKG...</div>
-        </div>
-
-        <div class="agent-card" id="agent-earlywarning">
-          <div class="agent-header">
-            <div class="agent-icon">📢</div>
-            <div class="agent-info">
-              <div class="agent-name">Early Warning Agent</div>
-              <div class="agent-role">Notifikasi Warga Rentan</div>
-            </div>
-            <div class="agent-status-badge idle" id="status-earlywarning">IDLE</div>
-          </div>
-          <div class="agent-details">
-            <div class="agent-stat"><span>Prioritas</span><span>Lansia → Balita → Difabel</span></div>
-            <div class="agent-stat"><span>Channel</span><span>Telegram + SMS</span></div>
-            <div class="agent-stat"><span>Otorisasi</span><span>Otonom Penuh</span></div>
-          </div>
-          <div class="agent-log" id="log-earlywarning">Menunggu peta risiko...</div>
-        </div>
-
-        <div class="agent-card" id="agent-allocation">
-          <div class="agent-header">
-            <div class="agent-icon">🚁</div>
-            <div class="agent-info">
-              <div class="agent-name">Allocation Agent</div>
-              <div class="agent-role">Dispatch & GIS Routing</div>
-            </div>
-            <div class="agent-status-badge idle" id="status-allocation">IDLE</div>
-          </div>
-          <div class="agent-details">
-            <div class="agent-stat"><span>Routing</span><span>OpenRouteService API</span></div>
-            <div class="agent-stat"><span>Distribusi Fisik</span><span>⚠️ Perlu Konfirmasi</span></div>
-            <div class="agent-stat"><span>Kapasitas</span><span>150 relawan</span></div>
-          </div>
-          <div class="agent-log" id="log-allocation">Menunggu peta risiko...</div>
-        </div>
-
-        <div class="agent-card" id="agent-communication">
-          <div class="agent-header">
-            <div class="agent-icon">📝</div>
-            <div class="agent-info">
-              <div class="agent-name">Communication Agent</div>
-              <div class="agent-role">Laporan via Claude API</div>
-            </div>
-            <div class="agent-status-badge idle" id="status-communication">IDLE</div>
-          </div>
-          <div class="agent-details">
-            <div class="agent-stat"><span>Model</span><span>Claude Sonnet</span></div>
-            <div class="agent-stat"><span>Laporan</span><span>Setiap 30 menit</span></div>
-            <div class="agent-stat"><span>Bahasa</span><span>Indonesia sederhana</span></div>
-          </div>
-          <div class="agent-log" id="log-communication">Menunggu semua output agen...</div>
-        </div>
-
-        <div class="agent-card orchestrator-card" id="agent-orchestrator">
-          <div class="agent-header">
-            <div class="agent-icon">🎯</div>
-            <div class="agent-info">
-              <div class="agent-name">Orchestrator Agent</div>
-              <div class="agent-role">Koordinasi Seluruh Sistem</div>
-            </div>
-            <div class="agent-status-badge active" id="status-orchestrator">ACTIVE</div>
-          </div>
-          <div class="agent-details">
-            <div class="agent-stat"><span>Framework</span><span>AutoGen 0.4.x pattern</span></div>
-            <div class="agent-stat"><span>HitL</span><span>Distribusi fisik: WAJIB</span></div>
-          </div>
-          <div class="agent-log" id="log-orchestrator">Sistem aktif — menunggu trigger dari Monitor Agent</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── VIEW: Alert Log ─────────────────────────────────────────── -->
-    <section class="view" id="view-alerts">
-      <div class="view-header">
-        <h2>🔔 Alert History</h2>
-        <span class="count-badge" id="alert-total-count">0 alert</span>
-      </div>
-      <div class="table-container">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Waktu</th>
-              <th>Bencana ID</th>
-              <th>Level</th>
-              <th>Wilayah</th>
-              <th>Warga Ternotifikasi</th>
-              <th>Rentan (KRITIS)</th>
-            </tr>
-          </thead>
-          <tbody id="alert-table-body">
-            <tr><td colspan="6" class="empty-cell">Jalankan simulasi untuk melihat alert</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- ── VIEW: Audit Log ─────────────────────────────────────────── -->
-    <section class="view" id="view-audit">
-      <div class="view-header">
-        <h2>📋 Audit Log Transparansi</h2>
-        <p class="view-desc">Setiap aksi agen tercatat secara penuh: siapa, apa, kapan, dan hasilnya.</p>
-      </div>
-      <div class="audit-feed" id="audit-feed">
-        <div class="empty-state">Menunggu data simulasi...</div>
-      </div>
-    </section>
-
-    <!-- ── VIEW: Simulation ────────────────────────────────────────── -->
-    <section class="view" id="view-simulation">
-      <div class="simulation-container">
-        <div class="sim-header">
-          <h2>▶ Panel Simulasi Demo</h2>
-          <p>Jalankan skenario banjir Jabodetabek secara end-to-end untuk melihat sistem bekerja.</p>
-        </div>
-
-        <div class="scenario-card">
-          <div class="scenario-title">
-            <span class="scenario-badge">SKENARIO DEMO</span>
-            Banjir Jabodetabek — Status BMKG Siaga
-          </div>
-          <div class="scenario-grid">
-            <div class="scenario-district district-critical">
-              <div class="district-name">Ciawi</div>
-              <div class="district-mm">310 mm/hari</div>
-              <div class="district-level">⛔ KRITIS</div>
-            </div>
-            <div class="scenario-district district-critical">
-              <div class="district-name">Bogor Tengah</div>
-              <div class="district-mm">290 mm/hari</div>
-              <div class="district-level">⛔ KRITIS</div>
-            </div>
-            <div class="scenario-district district-critical">
-              <div class="district-name">Cisarua</div>
-              <div class="district-mm">285 mm/hari</div>
-              <div class="district-level">⛔ KRITIS</div>
-            </div>
-            <div class="scenario-district district-high">
-              <div class="district-name">Bogor Selatan</div>
-              <div class="district-mm">265 mm/hari</div>
-              <div class="district-level">🔴 TINGGI</div>
-            </div>
-            <div class="scenario-district district-medium">
-              <div class="district-name">Cibinong</div>
-              <div class="district-mm">180 mm/hari</div>
-              <div class="district-level">🟡 SEDANG</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="pipeline-viz" id="pipeline-viz">
-          <div class="pipeline-step" id="step-monitor" data-step="0">
-            <div class="step-icon">🔍</div>
-            <div class="step-name">Monitor Agent</div>
-            <div class="step-status">Menunggu</div>
-          </div>
-          <div class="pipeline-arrow">→</div>
-          <div class="pipeline-step" id="step-prediction" data-step="1">
-            <div class="step-icon">🗺️</div>
-            <div class="step-name">Prediction Agent</div>
-            <div class="step-status">Menunggu</div>
-          </div>
-          <div class="pipeline-arrow">→</div>
-          <div class="pipeline-step parallel-group" id="step-parallel">
-            <div class="parallel-label">⚡ Paralel</div>
-            <div class="pipeline-step-inner" id="step-warning" data-step="2">
-              <div class="step-icon">📢</div>
-              <div class="step-name">Early Warning</div>
-              <div class="step-status">Menunggu</div>
-            </div>
-            <div class="pipeline-step-inner" id="step-allocation" data-step="3">
-              <div class="step-icon">🚁</div>
-              <div class="step-name">Allocation</div>
-              <div class="step-status">Menunggu</div>
-            </div>
-          </div>
-          <div class="pipeline-arrow">→</div>
-          <div class="pipeline-step" id="step-communication" data-step="4">
-            <div class="step-icon">📝</div>
-            <div class="step-name">Communication</div>
-            <div class="step-status">Menunggu</div>
-          </div>
-        </div>
-
-        <div class="sim-controls">
-          <button class="btn-simulate" id="btn-simulate" onclick="triggerSimulation()">
-            <span class="btn-icon">▶</span>
-            Jalankan Simulasi Demo
-          </button>
-          <button class="btn-reset" id="btn-reset" onclick="resetSimulation()">
-            ↺ Reset
-          </button>
-        </div>
-
-        <!-- Hasil Simulasi -->
-        <div class="sim-results hidden" id="sim-results">
-          <div class="result-grid">
-            <div class="result-card">
-              <div class="result-icon">⏱️</div>
-              <div class="result-value" id="r-elapsed">—</div>
-              <div class="result-label">Total Waktu Pipeline</div>
-            </div>
-            <div class="result-card">
-              <div class="result-icon">📢</div>
-              <div class="result-value" id="r-notified">—</div>
-              <div class="result-label">Warga Ternotifikasi</div>
-            </div>
-            <div class="result-card">
-              <div class="result-icon">🏷️</div>
-              <div class="result-value" id="r-critical">—</div>
-              <div class="result-label">Tier KRITIS (prioritas)</div>
-            </div>
-            <div class="result-card">
-              <div class="result-icon">🦺</div>
-              <div class="result-value" id="r-volunteers">—</div>
-              <div class="result-label">Relawan Ditugaskan</div>
-            </div>
-          </div>
-
-          <div class="hitl-reminder">
-            <span class="hitl-icon">⚠️</span>
-            <div>
-              <strong>Human-in-the-Loop Required</strong><br>
-              <span>Distribusi bantuan fisik memerlukan konfirmasi koordinator BPBD sebelum dieksekusi.</span>
-            </div>
-            <button class="btn-confirm" id="btn-confirm" onclick="confirmAssignment()">
-              ✅ Konfirmasi sebagai Koordinator
-            </button>
-          </div>
-        </div>
-
-        <!-- Laporan BPBD -->
-        <div class="report-container hidden" id="report-container">
-          <div class="report-header">
-            <h3>📋 Laporan Situasi untuk BPBD</h3>
-            <span class="report-badge">Generated by Claude API</span>
-          </div>
-          <pre class="report-content" id="report-content">Menunggu laporan...</pre>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <script src="js/map.js"></script>
-  <script src="js/charts.js"></script>
-  <script src="js/dashboard.js"></script>
+<!-- Load scripts -->
+<script src="js/map.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/dashboard.js"></script>
 </body>
 </html>

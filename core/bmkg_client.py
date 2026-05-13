@@ -106,14 +106,20 @@ class BMKGClient:
         self.simulation_mode = simulation_mode if simulation_mode is not None \
             else os.getenv("SIMULATION_MODE", "true").lower() == "true"
         self._client = httpx.AsyncClient(timeout=30.0)
-        logger.info(f"BMKGClient initialized (simulation_mode={self.simulation_mode})")
+        
+        if self.simulation_mode:
+            logger.info("⚠️ BMKGClient berjalan di SIMULATION_MODE=true (Data Dummy/Sintetis)")
+        else:
+            logger.info("✅ BMKGClient berjalan di SIMULATION_MODE=false (Menarik data REAL dari API BMKG: data.bmkg.go.id)")
 
     async def get_weather_forecast(self, province: str = "JawaBarat") -> dict:
         """Ambil prakiraan cuaca dari BMKG Digital Forecast API."""
         if self.simulation_mode:
+            logger.debug("[BMKGClient] Menggunakan data cuaca mock/dummy.")
             return self._mock_weather_data(province)
 
         url = f"{self.BASE_URL}/DigitalForecast-{province}.xml"
+        logger.info(f"[BMKGClient] Memanggil API BMKG secara langsung (Real Data): {url}")
         headers = {
             "User-Agent": "Mozilla/5.0 (compatible; DisasterReady/1.0)",
             "Accept": "application/xml"

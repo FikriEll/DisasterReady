@@ -26,13 +26,12 @@ from dotenv import load_dotenv
 load_dotenv()
 logger = logging.getLogger(__name__)
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
-
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 
 class CommunicationAgent:
     """
-    Agent komunikasi: Generate laporan dan pesan menggunakan Google Gemini API.
+    Agent komunikasi: Generate laporan dan pesan menggunakan Groq API (Llama 3).
     Fallback ke template statis jika API key tidak tersedia.
     """
 
@@ -44,16 +43,15 @@ class CommunicationAgent:
             else os.getenv("SIMULATION_MODE", "true").lower() == "true"
 
         self._client = None
-        if GEMINI_API_KEY:
+        if GROQ_API_KEY:
             try:
-                import google.generativeai as genai
-                genai.configure(api_key=GEMINI_API_KEY)
-                self._client = genai.GenerativeModel(GEMINI_MODEL)
-                logger.info(f"✅ CommunicationAgent: Google Gemini ({GEMINI_MODEL}) terhubung")
+                from groq import AsyncGroq
+                self._client = AsyncGroq(api_key=GROQ_API_KEY)
+                logger.info(f"✅ CommunicationAgent: Groq API ({GROQ_MODEL}) terhubung")
             except ImportError:
-                logger.warning("google-generativeai library tidak terinstall. Menggunakan template fallback.")
+                logger.warning("groq library tidak terinstall. Menggunakan template fallback.")
         else:
-            logger.warning("⚠️  GEMINI_API_KEY tidak ditemukan. Menggunakan template fallback.")
+            logger.warning("⚠️  GROQ_API_KEY tidak ditemukan. Menggunakan template fallback.")
 
     async def generate_situation_report(
         self,
@@ -76,7 +74,7 @@ class CommunicationAgent:
         )
 
         if self._client:
-            report = await self._generate_with_claude(context, "situation_report")
+            report = await self._generate_with_groq(context, "situation_report")
         else:
             report = self._generate_template_report(context)
 
@@ -86,7 +84,7 @@ class CommunicationAgent:
                 "report_type": "situation_report",
                 "content": report,
                 "alert_level": alert_level,
-                "generated_by": "gemini" if self._client else "template",
+                "generated_by": "groq" if self._client else "template",
             })
             self.firebase.log_action(
                 agent_name=self.AGENT_NAME,
@@ -106,24 +104,33 @@ class CommunicationAgent:
         district_name: str,
         rainfall_mm: float,
         disaster_type: str,
+        evacuation_route: dict = None,
     ) -> str:
         """
-        Generate pesan notifikasi personal via Claude.
-        CATATAN: Hanya nama depan dan kecamatan yang dikirim ke Claude — bukan data sensitif.
+        Generate pesan notifikasi personal via Gemini.
+        CATATAN: Hanya nama depan dan kecamatan yang dikirim ke Gemini — bukan data sensitif.
         """
         if not self._client:
             # Fallback ke template standar dari early_warning_agent
             from agents.early_warning_agent import build_notification_message
             return build_notification_message(
                 resident, vulnerability_score, alert_level,
-                district_name, rainfall_mm, disaster_type
+                district_name, rainfall_mm, disaster_type,
+                evacuation_route=evacuation_route
             )
 
         age = resident.get("age", 30)
         disability = resident.get("disability", "none")
         tier = vulnerability_score.priority_tier
 
-        # Konteks minimal yang dikirim ke Claude (tidak ada NIK/alamat/telepon)
+        # Setup instruksi evakuasi jika ada
+        evac_instruction = ""
+        if evacuation_route and tier in ["KRITIS", "TINGGI"]:
+            point_name = evacuation_route.get("point_name", "titik kumpul terdekat")
+            dist_km = evacuation_route.get("route_info", {}).get("distance_km", 1.5) if evacuation_route.get("route_info") else 1.5
+            evac_instruction = f"- Instruksi Evakuasi: Arahkan warga untuk segera menuju titik kumpul evakuasi di {point_name} (berjarak sekitar {dist_km} km)."
+
+        # Konteks minimal yang dikirim ke Claude/Gemini (tidak ada NIK/alamat/telepon)
         prompt = f"""Kamu adalah sistem peringatan dini bencana Indonesia.
 Tulis pesan notifikasi darurat dalam Bahasa Indonesia sederhana untuk:
 - Kecamatan: {district_name}
@@ -131,11 +138,12 @@ Tulis pesan notifikasi darurat dalam Bahasa Indonesia sederhana untuk:
 - Curah hujan: {rainfall_mm:.0f}mm/hari — potensi {disaster_type.replace('_', ' ')}
 - Profil penerima: {"lansia" if age >= 60 else "balita (kepada orang tua)" if age <= 4 else "penyandang disabilitas" if disability != "none" else "warga umum"}
 - Prioritas: {tier}
+{evac_instruction}
 
 Pesan harus:
 - Maks 300 kata
 - Bahasa sederhana, tidak menimbulkan kepanikan berlebihan
-- Menyebutkan 3-4 langkah konkret yang bisa dilakukan
+- Menyebutkan 3-4 langkah konkret yang bisa dilakukan (jika ada instruksi evakuasi, jadikan langkah pertama)
 - Menyebutkan nomor darurat 119 (BNPB) dan 112
 - Menyebutkan sumber data: BMKG
 - Langsung ke poin, tidak bertele-tele
@@ -143,14 +151,20 @@ Pesan harus:
 Tulis langsung pesannya (tidak perlu pengantar)."""
 
         try:
-            response = self._client.generate_content(prompt)
-            return response.text
+            response = await self._client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model=GROQ_MODEL,
+                max_tokens=300,
+                temperature=0.3,
+            )
+            return response.choices[0].message.content
         except Exception as e:
-            logger.error(f"Gemini API error: {e}. Fallback ke template.")
+            logger.error(f"Groq API error: {e}. Fallback ke template.")
             from agents.early_warning_agent import build_notification_message
             return build_notification_message(
                 resident, vulnerability_score, alert_level,
-                district_name, rainfall_mm, disaster_type
+                district_name, rainfall_mm, disaster_type,
+                evacuation_route=evacuation_route
             )
 
     def _build_situation_context(
@@ -177,10 +191,8 @@ Tulis langsung pesannya (tidak perlu pengantar)."""
             "approval_required": True,
         }
 
-    async def _generate_with_claude(self, context: dict, report_type: str) -> str:
-        """Generate report menggunakan Google Gemini API."""
-        import asyncio
-
+    async def _generate_with_groq(self, context: dict, report_type: str) -> str:
+        """Generate report menggunakan Groq API."""
         prompt = f"""Kamu adalah sistem AI DisasterReady — koordinator respons bencana Indonesia.
 Buat laporan situasi bencana untuk BPBD berdasarkan data berikut:
 
@@ -215,12 +227,17 @@ Vulnerability score dihitung dari data demografis BPS 2023.]"
 
 Buat laporan yang faktual, jelas, dan dapat langsung digunakan BPBD."""
 
-        loop = __import__("asyncio").get_event_loop()
-        response = await loop.run_in_executor(
-            None,
-            lambda: self._client.generate_content(prompt)
-        )
-        return response.text
+        try:
+            response = await self._client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model=GROQ_MODEL,
+                temperature=0.2,
+                max_tokens=800,
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            logger.error(f"Groq API error during report generation: {e}. Fallback ke template statis.")
+            return self._generate_template_report(context)
 
     def _generate_template_report(self, ctx: dict) -> str:
         """Template laporan fallback (tanpa Claude API)."""

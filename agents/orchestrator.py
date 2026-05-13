@@ -139,8 +139,17 @@ class OrchestratorAgent:
         district_risks = prediction_result["district_risks"]
         logger.info(f"   ✅ Peta risiko: {len(district_risks)} kecamatan dipetakan\n")
 
-        # ── STEP 2 & 3: Early Warning + Allocation (paralel) ─────────────────
-        logger.info("📢 STEP 2/4 — EarlyWarningAgent + AllocationAgent (paralel)...")
+        # Filter warga terdampak dari district_risks
+        affected_district_ids = [d["district_id"] for d in district_risks if d["risk_level"] in ["high", "critical", "medium"]]
+        from core.geo_utils import filter_residents_in_districts
+        affected_residents = filter_residents_in_districts(self.residents, affected_district_ids)
+
+        # ── STEP 2: AllocationAgent (Calculate Evacuation Routes) ─────────────
+        logger.info("🗺️ STEP 2/4 — AllocationAgent: Menghitung jalur evakuasi warga...")
+        evacuation_routes = await self.allocation_agent.calculate_evacuation_routes(affected_residents)
+
+        # ── STEP 3: Early Warning + Allocation (Dispatch) (paralel) ───────────
+        logger.info("📢 STEP 3/4 — EarlyWarningAgent + AllocationAgent (paralel)...")
         notification_task = asyncio.create_task(
             self.early_warning_agent.process_alert(
                 disaster_id=disaster_id,
@@ -148,6 +157,7 @@ class OrchestratorAgent:
                 alert_level=alert.alert_level.value,
                 rainfall_mm=alert.rainfall_mm,
                 disaster_type=alert.triggered_disaster_type,
+                evacuation_routes=evacuation_routes,
                 message_generator=self.communication_agent.personalize_notification
                     if self.communication_agent._client else None,
             )
@@ -157,6 +167,7 @@ class OrchestratorAgent:
                 disaster_id=disaster_id,
                 district_risks=district_risks,
                 notification_stats={},
+                evacuation_routes=evacuation_routes,
             )
         )
 

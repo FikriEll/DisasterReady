@@ -1,6 +1,5 @@
 /**
- * DisasterReady — Main Dashboard Controller
- * Real-time dashboard via Server-Sent Events (SSE).
+ * PANTARA Bencana — Main Dashboard Controller
  * Mengelola views, update metrik, audit log, dan simulasi.
  */
 
@@ -13,17 +12,30 @@ let lastRiskMapTimestamp = null;
 let lastAuditLatestId = null;
 let lastAlertLatestId = null;
 let lastAssignmentTimestamp = null;
+let lastReportId = null;
 
 // ── View Navigation ────────────────────────────────────────────────────────────
 function showView(viewName) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => {
+    v.classList.remove('flex');
+    v.classList.add('hidden');
+  });
+  document.querySelectorAll('.nav-link').forEach(n => {
+    n.classList.remove('bg-secondary-container', 'text-on-secondary-container');
+    n.classList.add('text-on-surface-variant');
+  });
 
   const view = document.getElementById(`view-${viewName}`);
   const navBtn = document.getElementById(`nav-${viewName}`);
 
-  if (view) view.classList.add('active');
-  if (navBtn) navBtn.classList.add('active');
+  if (view) {
+    view.classList.remove('hidden');
+    view.classList.add('flex');
+  }
+  if (navBtn) {
+    navBtn.classList.remove('text-on-surface-variant');
+    navBtn.classList.add('bg-secondary-container', 'text-on-secondary-container');
+  }
 
   const titles = {
     dashboard: ['Dashboard Real-Time', 'Monitoring BMKG & Koordinasi Respons Bencana'],
@@ -147,7 +159,15 @@ function updateDashboard(data) {
     const reportEl = document.getElementById('report-content');
     if (reportEl && latestReport?.content) {
       reportEl.textContent = latestReport.content;
-      document.getElementById('report-container')?.classList.remove('hidden');
+      
+      // Auto-open panel if this is a new report
+      if (latestReport.id && latestReport.id !== lastReportId) {
+        lastReportId = latestReport.id;
+        // Don't auto-open immediately on page load, only if there's a running simulation or we explicitly clicked
+        if (currentDisasterId && simStartTime) {
+          openReport();
+        }
+      }
     }
   }
 
@@ -217,26 +237,50 @@ function updateAlertFeed(alerts) {
   if (!feed) return;
 
   if (alerts.length === 0) {
-    feed.innerHTML = '<div class="empty-state">Menunggu data simulasi...</div>';
+    feed.innerHTML = '<div class="text-on-surface-variant text-sm text-center py-8">Menunggu data simulasi...</div>';
     return;
   }
 
-  // Tampilkan 5 terbaru
   feed.innerHTML = '';
   const recent = [...alerts].reverse().slice(0, 6);
   recent.forEach(a => {
     const level = (a.alert_level || '').toLowerCase();
-    const cssClass = level === 'awas' || level === 'kritis' ? 'critical' : level === 'siaga' ? 'high' : 'info';
+    
+    let bgClass, borderClass, iconColor, textColor, iconName;
+    if (level === 'awas' || level === 'kritis') {
+      bgClass = 'bg-[#fef9c3]'; borderClass = 'border-[#fef08a]';
+      iconColor = 'text-[#ca8a04]'; textColor = 'text-[#854d0e]';
+      iconName = 'error';
+    } else if (level === 'siaga') {
+      bgClass = 'bg-[#fee2e2]'; borderClass = 'border-[#fecaca]';
+      iconColor = 'text-primary'; textColor = 'text-primary';
+      iconName = 'emergency';
+    } else {
+      bgClass = 'bg-[#ffedd5]'; borderClass = 'border-[#fed7aa]';
+      iconColor = 'text-[#ea580c]'; textColor = 'text-[#9a3412]';
+      iconName = 'warning';
+    }
+    
+    const formatDistrict = (d) => {
+      if (!d) return '';
+      return d.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    };
+    const formattedDistricts = (a.affected_districts || []).map(formatDistrict).join(', ') || '—';
+
     const time = a.sent_at ? new Date(a.sent_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '--';
 
     const item = document.createElement('div');
-    item.className = `alert-item ${cssClass}`;
+    item.className = `p-3 border ${borderClass} ${bgClass} rounded-lg mb-2`;
     item.innerHTML = `
-      <div class="alert-time">${time}</div>
-      <div class="alert-msg">
-        ${a.alert_level} — ${a.affected_districts?.join(', ') || '—'}<br>
-        <span style="color:#4a5568">Ternotifikasi: ${a.total_notified || 0} warga</span>
+      <div class="flex items-center gap-2 mb-1">
+        <span class="material-symbols-outlined ${iconColor}" style="font-variation-settings: 'FILL' 1;">${iconName}</span>
+        <span class="font-label-md text-label-md ${textColor} uppercase tracking-wider">${a.alert_level}</span>
       </div>
+      <p class="font-body-md text-body-md text-on-surface-variant">
+        Wilayah Terdampak: <b>${formattedDistricts}</b><br>
+        Ternotifikasi: <b>${a.total_notified || 0}</b> warga rentan.
+      </p>
+      <span class="text-status-sm font-status-sm text-on-surface-variant block mt-2">${time}</span>
     `;
     feed.appendChild(item);
   });
@@ -247,7 +291,7 @@ function updateAlertTable(alerts) {
   if (!tbody) return;
 
   if (alerts.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty-cell">Jalankan simulasi untuk melihat alert</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-on-surface-variant">Jalankan simulasi untuk melihat alert</td></tr>';
     return;
   }
 
@@ -255,15 +299,43 @@ function updateAlertTable(alerts) {
   [...alerts].reverse().forEach(a => {
     const time = a.sent_at ? new Date(a.sent_at).toLocaleString('id-ID') : '--';
     const level = a.alert_level || '—';
-    const levelColor = level === 'Awas' ? '#ff2d55' : level === 'Siaga' ? '#ff6b00' : '#ffd60a';
+    
+    let levelBadge = '';
+    if (level === 'Awas') levelBadge = '<span class="px-2 py-1 bg-secondary-fixed text-on-secondary-fixed rounded text-status-sm font-status-sm">Awas</span>';
+    else if (level === 'Siaga') levelBadge = '<span class="px-2 py-1 bg-[#ffedd5] text-[#9a3412] rounded text-status-sm font-status-sm">Siaga</span>';
+    else levelBadge = '<span class="px-2 py-1 bg-surface-variant text-on-surface-variant rounded text-status-sm font-status-sm">Waspada</span>';
+
     const tr = document.createElement('tr');
+    tr.className = 'border-b border-outline-variant hover:bg-surface-container-highest transition-colors';
+    
+    // Calculate a mock score out of 100 based on KRITIS
+    const vulnScore = Math.min(100, Math.max(10, (a.tier_breakdown?.KRITIS || 0)));
+    let scoreColor = vulnScore > 70 ? 'bg-primary' : (vulnScore > 40 ? 'bg-[#ea580c]' : 'bg-outline');
+    let textColor = vulnScore > 70 ? 'text-primary' : (vulnScore > 40 ? 'text-[#ea580c]' : 'text-on-surface-variant');
+    let scoreLabel = vulnScore > 70 ? 'High' : (vulnScore > 40 ? 'Med' : 'Low');
+
+    const formatDistrict = (d) => {
+      if (!d) return '';
+      return d.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    };
+    const formattedDistricts = (a.affected_districts || []).map(formatDistrict).join(', ') || '—';
+
     tr.innerHTML = `
-      <td style="font-family: monospace; font-size: 11px;">${time}</td>
-      <td style="font-family: monospace; font-size: 11px;">${a.disaster_id || '—'}</td>
-      <td><strong style="color:${levelColor}">${level}</strong></td>
-      <td>${(a.affected_districts || []).join(', ') || '—'}</td>
-      <td style="color:#30d158; font-weight: 600;">${a.total_notified || 0}</td>
-      <td style="color:#ffd60a; font-weight: 600;">${a.tier_breakdown?.KRITIS || 0}</td>
+      <td class="p-3">${a.disaster_id || '—'}</td>
+      <td class="p-3">${formattedDistricts}</td>
+      <td class="p-3">${levelBadge}</td>
+      <td class="p-3">
+        <div class="flex items-center gap-2">
+        <div class="w-full bg-surface-variant rounded-full h-2 max-w-[100px]">
+        <div class="${scoreColor} h-2 rounded-full" style="width: ${vulnScore}%"></div>
+        </div>
+        <span class="text-status-sm font-status-sm ${textColor}">${scoreLabel} (${vulnScore})</span>
+        </div>
+      </td>
+      <td class="p-3"><span class="text-secondary font-medium">Processing</span></td>
+      <td class="p-3">
+        <button onclick="openReport()" class="text-secondary border border-secondary px-3 py-1 rounded text-status-sm font-status-sm hover:bg-secondary-container hover:text-on-secondary-container transition-colors flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">smart_toy</span> AI Report</button>
+      </td>
     `;
     tbody.appendChild(tr);
   });
@@ -291,14 +363,14 @@ function updateAuditLog(auditLog) {
       : '--';
 
     const div = document.createElement('div');
-    div.className = 'audit-entry';
+    div.className = 'p-3 bg-surface-container-highest rounded-lg border border-outline-variant';
     div.innerHTML = `
-      <div class="audit-timestamp">${time}</div>
-      <div>
-        <div class="audit-agent">${entry.agent || '—'}</div>
-        <div class="audit-action">${entry.action || '—'}</div>
+      <div class="flex items-center justify-between mb-1">
+        <span class="font-label-md text-label-md text-primary uppercase">${entry.agent || 'SYSTEM'}</span>
+        <span class="text-status-sm font-status-sm text-on-surface-variant">${time}</span>
       </div>
-      <div class="audit-result">${(entry.result || '').substring(0, 30)}</div>
+      <div class="font-body-md text-body-md text-on-surface mb-1"><strong>${entry.action || '—'}</strong></div>
+      <div class="font-body-md text-body-md text-on-surface-variant break-words">${(entry.result || '')}</div>
     `;
     feed.appendChild(div);
   });
@@ -326,14 +398,8 @@ function updateAgentStatuses(auditLog) {
     if (!key) return;
 
     const badge = document.getElementById(`status-${key}`);
-    const log = document.getElementById(`log-${key}`);
-
     if (badge) {
-      badge.className = 'agent-status-badge done';
-      badge.textContent = 'DONE';
-    }
-    if (log && entry.result) {
-      log.textContent = entry.result.substring(0, 80);
+      badge.className = 'px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container transition-colors border border-secondary';
     }
   });
 }
@@ -342,19 +408,14 @@ function updateAgentStatuses(auditLog) {
 async function triggerSimulation() {
   const btn = document.getElementById('btn-simulate');
   btn.disabled = true;
-  btn.innerHTML = '<span class="btn-icon">⏳</span> Menjalankan Pipeline...';
+  btn.textContent = 'DEPLOYING...';
 
   simStartTime = Date.now();
 
-  // Reset pipeline viz
-  setPipelineStep(-1);
-
-  // Ubah status agen ke processing
-  ['monitor', 'prediction', 'earlywarning', 'allocation', 'communication', 'orchestrator'].forEach(a => {
+  ['monitor', 'prediction', 'earlywarning', 'allocation', 'communication'].forEach(a => {
     const badge = document.getElementById(`status-${a}`);
     if (badge) {
-      badge.className = 'agent-status-badge processing';
-      badge.textContent = 'RUNNING';
+      badge.className = 'px-2 py-1 rounded-full bg-[#fef9c3] text-[#854d0e] transition-colors border border-[#fef08a] animate-pulse';
     }
   });
 
@@ -369,30 +430,11 @@ async function triggerSimulation() {
   } catch (err) {
     alert('Error: Pastikan server FastAPI berjalan di port 8000');
     btn.disabled = false;
-    btn.innerHTML = '<span class="btn-icon">▶</span> Jalankan Simulasi Demo';
+    btn.textContent = 'DEPLOY RAPID RESPONSE';
   }
 }
 
 function animatePipeline() {
-  const steps = ['step-monitor', 'step-prediction', 'step-warning', 'step-allocation', 'step-communication'];
-  const delays = [500, 1500, 3000, 3500, 5500];
-
-  steps.forEach((stepId, i) => {
-    setTimeout(() => {
-      const el = document.getElementById(stepId);
-      if (!el) return;
-      el.classList.add('processing');
-      const statusEl = el.querySelector('.step-status');
-      if (statusEl) statusEl.textContent = 'BERJALAN...';
-
-      setTimeout(() => {
-        el.classList.remove('processing');
-        el.classList.add('done');
-        if (statusEl) statusEl.textContent = '✅ SELESAI';
-      }, 1200);
-    }, delays[i]);
-  });
-
   // Tampilkan hasil setelah pipeline selesai
   setTimeout(async () => {
     const elapsed = ((Date.now() - simStartTime) / 1000).toFixed(1);
@@ -400,12 +442,20 @@ function animatePipeline() {
 
     const btn = document.getElementById('btn-simulate');
     btn.disabled = false;
-    btn.innerHTML = '<span class="btn-icon">▶</span> Jalankan Ulang';
+    btn.textContent = 'DEPLOY RAPID RESPONSE';
   }, 7000);
 }
 
 async function showSimResults(elapsed) {
-  document.getElementById('sim-results')?.classList.remove('hidden');
+  const simToast = document.getElementById('sim-results');
+  if (simToast) {
+    simToast.classList.remove('hidden');
+    // Animate in
+    setTimeout(() => {
+      simToast.classList.remove('translate-y-20', 'opacity-0');
+      simToast.classList.add('translate-y-0', 'opacity-100');
+    }, 10);
+  }
   document.getElementById('r-elapsed').textContent = elapsed + 's';
 
   // Coba ambil data terbaru dari API
@@ -449,8 +499,13 @@ async function showSimResults(elapsed) {
     if (reportRes.ok) {
       const reports = await reportRes.json();
       if (reports.length > 0) {
-        document.getElementById('report-content').textContent = reports[0].content || '—';
-        document.getElementById('report-container')?.classList.remove('hidden');
+        const reportEl = document.getElementById('report-content');
+        if (reportEl) {
+          // Parse as simple markdown (if needed) or keep as raw text
+          reportEl.textContent = reports[reports.length - 1].content || '—';
+          // Auto-open report panel to showcase the feature
+          openReport();
+        }
       }
     }
   } catch (e) {
@@ -481,11 +536,24 @@ async function confirmAssignment() {
       return;
     }
     
-    const successMessage = data.message || 'Konfirmasi berhasil.';
-    console.log('[DEBUG] Success message:', successMessage);
-    alert(`✅ ${successMessage}`);
-    document.getElementById('btn-confirm').textContent = '✅ Sudah Dikonfirmasi';
-    document.getElementById('btn-confirm').disabled = true;
+    // Animate button success
+    const btn = document.getElementById('btn-confirm');
+    if (btn) {
+      btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check_circle</span> DEPLOYED';
+      btn.classList.replace('bg-secondary', 'bg-[#15803d]'); // green
+      
+      // Create a temporary toast
+      const toast = document.createElement('div');
+      toast.className = 'fixed top-20 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface px-6 py-3 rounded-full shadow-2xl z-[100] font-label-md flex items-center gap-2 animate-bounce';
+      toast.innerHTML = '<span class="material-symbols-outlined text-[#4ade80]">verified</span> Relawan telah dikerahkan ke lapangan.';
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.remove();
+        btn.innerHTML = 'CONFIRM FIELD OP';
+        btn.classList.replace('bg-[#15803d]', 'bg-secondary');
+      }, 3000);
+    }
   } catch (e) {
     console.error('[DEBUG] Catch error:', e);
     alert('Error konfirmasi: ' + (e.message || 'Tidak diketahui'));
@@ -525,18 +593,21 @@ async function resetSimulation() {
 
       const btn = document.getElementById('btn-simulate');
       btn.disabled = false;
-      btn.innerHTML = '<span class="btn-icon">▶</span> Jalankan Simulasi Demo';
+      btn.textContent = 'DEPLOY RAPID RESPONSE';
 
-      ['monitor', 'prediction', 'earlywarning', 'allocation', 'communication', 'orchestrator'].forEach(a => {
+      ['monitor', 'prediction', 'earlywarning', 'allocation', 'communication'].forEach(a => {
         const badge = document.getElementById(`status-${a}`);
-        if (badge) { badge.className = 'agent-status-badge idle'; badge.textContent = 'IDLE'; }
-        const log = document.getElementById(`log-${a}`);
-        if (log) log.textContent = 'Menunggu trigger...';
+        if (badge) { 
+          badge.className = 'px-2 py-1 rounded-full bg-surface-variant text-on-surface-variant transition-colors border border-outline-variant'; 
+        }
       });
 
-      document.getElementById('alert-feed').innerHTML = '<div class="empty-state">Menunggu data simulasi...</div>';
-      document.getElementById('alert-table-body').innerHTML = '<tr><td colspan="6" class="empty-cell">Jalankan simulasi untuk melihat alert</td></tr>';
-      document.getElementById('audit-feed').innerHTML = '<div class="empty-state">Menunggu data simulasi...</div>';
+      document.getElementById('alert-feed').innerHTML = '<div class="text-on-surface-variant text-sm text-center py-8">Menunggu data simulasi...</div>';
+      document.getElementById('alert-table-body').innerHTML = '<tr><td colspan="6" class="p-4 text-center text-on-surface-variant">Jalankan simulasi untuk melihat alert</td></tr>';
+      document.getElementById('audit-feed').innerHTML = '<div class="text-on-surface-variant text-sm text-center py-8">Menunggu log sistem...</div>';
+      
+      const reportEl = document.getElementById('report-content');
+      if (reportEl) reportEl.textContent = 'Menunggu laporan...';
 
       // Clear metrik
       document.getElementById('m-active-disasters').textContent = '0';
@@ -544,7 +615,7 @@ async function resetSimulation() {
       document.getElementById('m-vulnerable').textContent = '0';
       document.getElementById('m-volunteers').textContent = '0';
       if (typeof updateRiskMap === 'function') {
-        updateRiskMap({ features: [] });
+        updateRiskMap({ type: "FeatureCollection", features: [] });
       }
       if (typeof addVolunteerMarkers === 'function') {
         addVolunteerMarkers([]);
@@ -554,8 +625,12 @@ async function resetSimulation() {
       }
 
       // Reset button states
-      document.getElementById('btn-confirm').textContent = '✓ Konfirmasi Penugasan';
-      document.getElementById('btn-confirm').disabled = false;
+      const confirmBtn = document.getElementById('btn-confirm');
+      if (confirmBtn) {
+        confirmBtn.innerHTML = 'CONFIRM FIELD OP';
+        confirmBtn.disabled = false;
+        confirmBtn.classList.replace('bg-[#15803d]', 'bg-secondary');
+      }
 
       if (sseSource) {
         sseSource.close();
@@ -569,11 +644,68 @@ async function resetSimulation() {
     alert('Reset error: ' + err.message);
   } finally {
     resetBtn.disabled = false;
-    resetBtn.textContent = '↺ Reset';
+    resetBtn.textContent = 'RESET OP';
+  }
+}
+
+// ── AI Report UI ──────────────────────────────────────────────────────────────
+function openReport() {
+  const panel = document.getElementById('report-container');
+  if (panel) {
+    panel.classList.remove('translate-x-full');
+    panel.classList.add('translate-x-0');
+  }
+}
+
+function closeReport() {
+  const panel = document.getElementById('report-container');
+  if (panel) {
+    panel.classList.remove('translate-x-0');
+    panel.classList.add('translate-x-full');
+  }
+}
+
+function triggerOverride() {
+  const toast = document.createElement('div');
+  toast.className = 'fixed top-20 left-1/2 -translate-x-1/2 bg-error text-on-error px-6 py-3 rounded-full shadow-2xl z-[100] font-label-md flex items-center gap-2 animate-pulse';
+  toast.innerHTML = '<span class="material-symbols-outlined">warning</span> SYSTEM OVERRIDE PROTOCOL INITIATED';
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.remove();
+  }, 3000);
+}
+
+
+// ── Theme Toggle ──────────────────────────────────────────────────────────────
+function initTheme() {
+  const savedTheme = localStorage.getItem('pantara_bencana_theme');
+  if (savedTheme) {
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  } else {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
+  updateThemeIcon();
+}
+
+function toggleTheme() {
+  const currentTheme = document.documentElement.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('pantara_bencana_theme', newTheme);
+  updateThemeIcon();
+}
+
+function updateThemeIcon() {
+  const theme = document.documentElement.getAttribute('data-theme');
+  const iconEl = document.getElementById('theme-icon');
+  if (iconEl) {
+    iconEl.textContent = theme === 'dark' ? '☀️' : '🌙';
   }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
   startSSE();
 });

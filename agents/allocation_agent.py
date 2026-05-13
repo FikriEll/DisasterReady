@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from core.firebase_client import FirebaseClient
-from core.geo_utils import find_nearest_volunteers, get_route
+from core.geo_utils import find_nearest_volunteers, get_route, get_evacuation_route
 
 logger = logging.getLogger(__name__)
 
@@ -45,19 +45,37 @@ class AllocationAgent:
         self._dispatched_volunteer_ids.clear()
         logger.info("[AllocationAgent] State relawan direset — siap untuk simulasi baru.")
 
+    async def calculate_evacuation_routes(self, affected_residents: list[dict]) -> dict:
+        """
+        Hitung rute evakuasi untuk seluruh warga terdampak.
+        Returns: Dict mapping resident_id -> evacuation_route_info
+        """
+        logger.info(f"🗺️ [AllocationAgent] Menghitung rute evakuasi untuk {len(affected_residents)} warga...")
+        
+        routes = {}
+        tasks = [(r["id"], get_evacuation_route(r["lat"], r["lon"], r.get("district_id"))) for r in affected_residents]
+        results = await asyncio.gather(*(t[1] for t in tasks))
+        for (res_id, _), route_info in zip(tasks, results):
+            routes[res_id] = route_info
+
+        logger.info(f"   ✅ {len(routes)} rute evakuasi berhasil dipetakan (Haversine).")
+        return routes
+
     async def dispatch_volunteers(
         self,
         disaster_id: str,
         district_risks: list[dict],
         notification_stats: dict,
+        evacuation_routes: dict = None,
     ) -> dict:
         """
-        Assign relawan ke zona terdampak berdasarkan proximity dan kebutuhan.
+        Assign relawan ke titik evakuasi berdasarkan proximity dan kebutuhan.
 
         Args:
             disaster_id: ID event bencana
             district_risks: List risiko per kecamatan dari Prediction Agent
-            notification_stats: Statistik dari Early Warning Agent (jumlah rentan per kecamatan)
+            notification_stats: Statistik dari Early Warning Agent
+            evacuation_routes: Mapping resident_id -> jalur evakuasi (dari calculate_evacuation_routes)
 
         Returns:
             dict berisi assignments dan total relawan yang didispatch
@@ -81,14 +99,41 @@ class AllocationAgent:
         assignments = []
         available_volunteers = [v for v in self.volunteers if v.get("is_available", True)]
 
-        for district in prioritized_districts:
-            target_lat = district["lat"]
-            target_lon = district["lon"]
-            district_name = district["district_name"]
-            vulnerable_count = district.get("vulnerable_residents", 0)
+        # Kelompokkan target berdasarkan Titik Evakuasi
+        # Kumpulkan titik evakuasi dari evacuation_routes
+        evacuation_targets = {}
+        if evacuation_routes:
+            for route_info in evacuation_routes.values():
+                p_name = route_info["point_name"]
+                if p_name not in evacuation_targets:
+                    evacuation_targets[p_name] = {
+                        "lat": route_info["point_lat"],
+                        "lon": route_info["point_lon"],
+                        "vulnerable_count": 0,
+                        "district_name": "Multiple"
+                    }
+                evacuation_targets[p_name]["vulnerable_count"] += 1
+
+        if not evacuation_targets:
+            # Fallback ke district center jika tidak ada data evacuation route
+            for district in prioritized_districts:
+                p_name = f"Titik Kumpul {district['district_name']}"
+                evacuation_targets[p_name] = {
+                    "lat": district["lat"],
+                    "lon": district["lon"],
+                    "vulnerable_count": district.get("vulnerable_residents", 0),
+                    "district_name": district["district_name"]
+                }
+
+        for p_name, target in evacuation_targets.items():
+            target_lat = target["lat"]
+            target_lon = target["lon"]
+            district_name = target["district_name"]
+            vulnerable_count = target["vulnerable_count"]
 
             # Tentukan jumlah relawan yang dibutuhkan
-            needed = self._calculate_volunteers_needed(district)
+            # Dummy logic: 1 relawan per 5 pengungsi
+            needed = max(2, vulnerable_count // 5) if vulnerable_count > 0 else 3
 
             # Temukan relawan terdekat yang belum ditugaskan
             eligible = [v for v in available_volunteers if v["id"] not in self._dispatched_volunteer_ids]
@@ -97,7 +142,7 @@ class AllocationAgent:
             selected = nearest[:needed]
 
             if not selected:
-                logger.warning(f"   ⚠️  Tidak cukup relawan untuk {district_name}")
+                logger.warning(f"   ⚠️  Tidak cukup relawan untuk titik evakuasi {p_name}")
                 continue
 
             # Dapatkan rute untuk setiap relawan
@@ -118,6 +163,7 @@ class AllocationAgent:
                     "from_lat": vol["lat"],
                     "from_lon": vol["lon"],
                     "to_district": district_name,
+                    "to_point_name": p_name,
                     "to_lat": target_lat,
                     "to_lon": target_lon,
                     "distance_km": route.get("distance_km", 0) if route else 0,
@@ -132,7 +178,7 @@ class AllocationAgent:
 
                 logger.info(
                     f"   ✅ {vol['name']} ({vol['organization']}) → "
-                    f"{district_name} | "
+                    f"{p_name} | "
                     f"ETA: {route.get('duration_minutes', '?'):.0f} menit | "
                     f"{route.get('distance_km', '?'):.1f} km"
                 )
@@ -140,9 +186,9 @@ class AllocationAgent:
             assignments.extend(district_assignments)
 
             logger.info(
-                f"   📍 {district_name} [{district['risk_level'].upper()}]: "
+                f"   📍 Titik Evakuasi {p_name}: "
                 f"{len(district_assignments)} relawan ditugaskan "
-                f"({vulnerable_count} warga rentan)"
+                f"({vulnerable_count} pengungsi/warga)"
             )
 
         # Simpan ke Firebase (masih pending confirmation)

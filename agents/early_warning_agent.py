@@ -33,6 +33,7 @@ def build_notification_message(
     district_name: str,
     rainfall_mm: float,
     disaster_type: str,
+    evacuation_route: dict = None,
 ) -> str:
     """
     Bangun pesan notifikasi personal dalam Bahasa Indonesia sederhana.
@@ -85,8 +86,10 @@ def build_notification_message(
         "4️⃣  Hubungi 119 jika membutuhkan bantuan darurat",
     ]
     if tier in ["KRITIS", "TINGGI"]:
-        steps.insert(0, "⚡ SEGERA bergerak ke tempat lebih tinggi atau titik evakuasi terdekat!")
-
+        evac_point_name = evacuation_route["point_name"] if evacuation_route else "titik kumpul terdekat"
+        dist_km = evacuation_route["route_info"]["distance_km"] if evacuation_route and evacuation_route.get("route_info") else 1.5
+        steps.insert(0, f"⚡ SEGERA menuju titik evakuasi: {evac_point_name} (jarak ±{dist_km} km)!")
+        
     steps_text = "\n".join(steps)
 
     message = (
@@ -140,6 +143,7 @@ class EarlyWarningAgent:
         alert_level: str,
         rainfall_mm: float,
         disaster_type: str,
+        evacuation_routes: dict = None,
         message_generator=None,  # Opsional: Communication Agent untuk pesan Claude
     ) -> dict:
         """
@@ -202,28 +206,35 @@ class EarlyWarningAgent:
 
             logger.info(f"   📨 Mengirim ke tier {tier}: {len(batch)} warga...")
 
-            # Kirim secara paralel dalam satu tier (dengan throttling)
-            tasks = []
+            # Hanya gunakan Groq LLM untuk warga KRITIS & TINGGI (hemat quota)
+            use_llm = message_generator and tier in ["KRITIS", "TINGGI"]
+
+            # Generate pesan & kumpulkan task notifikasi
+            notif_tasks = []
             for vs in batch:
                 resident = resident_map.get(vs.resident_id)
                 if not resident:
                     continue
 
-                # Build message (Claude atau template default)
-                if message_generator:
-                    msg = await message_generator(resident, vs, alert_level, primary_district["district_name"], rainfall_mm, disaster_type)
+                route_info = evacuation_routes.get(resident["id"]) if evacuation_routes else None
+
+                if use_llm:
+                    # Sequential dengan delay agar tidak hit Groq rate limit
+                    msg = await message_generator(resident, vs, alert_level, primary_district["district_name"], rainfall_mm, disaster_type, route_info)
+                    await asyncio.sleep(1.2)  # 1.2s delay → maks ~50 req/menit, di bawah limit Groq
                 else:
                     msg = build_notification_message(
                         resident, vs, alert_level,
                         primary_district["district_name"],
-                        rainfall_mm, disaster_type
+                        rainfall_mm, disaster_type,
+                        evacuation_route=route_info
                     )
 
-                tasks.append(
+                notif_tasks.append(
                     self.dispatcher.send_notification(resident, msg, tier)
                 )
 
-            results = await asyncio.gather(*tasks)
+            results = await asyncio.gather(*notif_tasks)
 
             for result in results:
                 if result.status == NotificationStatus.SENT:
@@ -259,6 +270,34 @@ class EarlyWarningAgent:
             },
             "notification_channels": ["telegram", "sms_fallback"],
         })
+
+        # --- DEMO LIVE PUSH NOTIFICATION ---
+        # Kirim 1 pesan ke TELEGRAM_DEMO_CHAT_ID agar juri bisa melihat notifikasi masuk
+        try:
+            import os
+            from core.telegram_notifier import get_telegram_notifier
+            demo_chat_id = os.getenv("TELEGRAM_DEMO_CHAT_ID")
+            notifier = get_telegram_notifier()
+            if demo_chat_id and notifier.is_configured:
+                demo_resident = affected_residents[0] if affected_residents else {"name": "Warga Demo", "age": 65, "disability": "none"}
+                demo_vs = ranked_scores[0] if ranked_scores else None
+                if not demo_vs:
+                    from core.vulnerability_scorer import VulnerabilityScore
+                    demo_vs = VulnerabilityScore("demo_id", "Warga Demo", 0, "KRITIS")
+                
+                demo_route = evacuation_routes.get(demo_resident.get("id")) if evacuation_routes else None
+                if message_generator:
+                    demo_msg = await message_generator(demo_resident, demo_vs, alert_level, primary_district["district_name"], rainfall_mm, disaster_type, demo_route)
+                else:
+                    demo_msg = build_notification_message(demo_resident, demo_vs, alert_level, primary_district["district_name"], rainfall_mm, disaster_type, demo_route)
+                
+                # Tambahkan header khusus demo
+                demo_msg = "🔔 [DEMO BROADCAST] 🔔\nIni adalah contoh pesan yang diterima oleh warga prioritas (Kritis):\n\n" + demo_msg
+                await notifier.send_message(chat_id=demo_chat_id, message=demo_msg)
+                logger.info(f"✅ Demo notification berhasil di-push ke {demo_chat_id}")
+        except Exception as e:
+            logger.error(f"Gagal mem-push demo notification: {e}")
+        # -----------------------------------
 
         stats = {
             "affected_residents": len(affected_residents),
