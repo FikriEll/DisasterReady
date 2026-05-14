@@ -958,16 +958,26 @@ body {
 
 .hidden { display: none !important; }
 
-/* ── Scrollbar ────────────────────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: var(--border-medium); }
+/* ── Smooth Theme Transition (Global) ──────────────────────────────────────── */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 0.25s;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-/* ── Leaflet overrides ────────────────────────────────────────────────────────── */
-.leaflet-container {
+/* Exception: don't animate transforms/layout with theme transition */
+.leaflet-marker-icon, .leaflet-tile, #map * {
+  transition: none !important;
+}
+
+/* ── Leaflet overrides — Dark Mode ────────────────────────────────────────── */
+[data-theme="dark"] .leaflet-container {
   background: #0d1117 !important;
-  font-family: 'Inter', sans-serif !important;
+}
+
+/* ── Leaflet overrides — Light Mode ──────────────────────────────────────── */
+[data-theme="light"] .leaflet-container {
+  background: #e8ecf0 !important;
 }
 
 .leaflet-popup-content-wrapper {
@@ -979,3 +989,20 @@ body {
 }
 
 .leaflet-popup-tip { background: var(--bg-secondary) !important; }
+
+/* ── Theme Toggle Button Animation ────────────────────────────────────────── */
+#theme-toggle {
+  transition: background-color 0.2s ease, transform 0.2s ease !important;
+}
+
+#theme-toggle:active {
+  transform: scale(0.9);
+}
+
+#theme-icon {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+[data-theme="dark"] #theme-icon {
+  transform: rotate(180deg);
+}

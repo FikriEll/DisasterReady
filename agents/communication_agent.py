@@ -1,5 +1,5 @@
 """
-DisasterReady — Communication Agent
+Pantara — Communication Agent
 Generate laporan situasi otomatis dan personalisasi pesan menggunakan Google Gemini API.
 
 Model: Google Gemini 2.0 Flash
@@ -136,17 +136,38 @@ Tulis pesan notifikasi darurat dalam Bahasa Indonesia sederhana untuk:
 - Kecamatan: {district_name}
 - Status BMKG: {alert_level}
 - Curah hujan: {rainfall_mm:.0f}mm/hari — potensi {disaster_type.replace('_', ' ')}
-- Profil penerima: {"lansia" if age >= 60 else "balita (kepada orang tua)" if age <= 4 else "penyandang disabilitas" if disability != "none" else "warga umum"}
+- Profil penerima: {resident.get("name", "Warga")} ({"lansia" if age >= 60 else "balita (kepada orang tua)" if age <= 4 else "penyandang disabilitas" if disability != "none" else "warga umum"})
 - Prioritas: {tier}
 {evac_instruction}
 
 Pesan harus:
-- Maks 300 kata
-- Bahasa sederhana, tidak menimbulkan kepanikan berlebihan
-- Menyebutkan 3-4 langkah konkret yang bisa dilakukan (jika ada instruksi evakuasi, jadikan langkah pertama)
-- Menyebutkan nomor darurat 119 (BNPB) dan 112
-- Menyebutkan sumber data: BMKG
-- Langsung ke poin, tidak bertele-tele
+- JANGAN menggunakan kata "demo", "simulasi", "contoh", atau sejenisnya.
+- WAJIB mengikuti format berikut secara persis:
+
+-PESAN NOTIFIKASI DARURAT-
+
+Halo {resident.get("name", "Warga")},
+Kami dari Sistem Peringatan Dini Bencana Indonesia memberitahu Anda bahwa situasi cuaca di Kecamatan {district_name} sedang mengalami kondisi darurat. 
+
+Kecamatan: {district_name}
+Status BMKG: {alert_level}
+Curah hujan: {rainfall_mm:.0f}mm/hari - Potensi {disaster_type.replace('_', ' ')}
+
+INSTRUKSI EVAKUASI:
+
+[Sebutkan 3-4 langkah konkret, jika ada instruksi evakuasi letakkan di nomor 1]
+
+INFO LAIN:
+
+ Nomor darurat: 119 (BNPB) dan 112
+ Sumber data: BMKG
+ Perlu diingat: situasi cuaca dapat berubah-ubah, pastikan Anda selalu memantau informasi terbaru.
+
+Tunggu instruksi dari petugas keamanan setempat!
+
+- Bahasa Indonesia yang tegas namun menenangkan.
+- Maks 400 kata.
+- Langsung ke poin.
 
 Tulis langsung pesannya (tidak perlu pengantar)."""
 
@@ -193,7 +214,7 @@ Tulis langsung pesannya (tidak perlu pengantar)."""
 
     async def _generate_with_groq(self, context: dict, report_type: str) -> str:
         """Generate report menggunakan Groq API."""
-        prompt = f"""Kamu adalah sistem AI DisasterReady — koordinator respons bencana Indonesia.
+        prompt = f"""Kamu adalah sistem AI Pantara — koordinator respons bencana Indonesia.
 Buat laporan situasi bencana untuk BPBD berdasarkan data berikut:
 
 === DATA SITUASI ===
@@ -221,7 +242,7 @@ Buat laporan dalam Bahasa Indonesia dengan format:
 [3-4 rekomendasi konkret untuk koordinator BPBD]
 
 **6. Sumber Data & Transparansi**
-"Laporan ini dibuat otomatis oleh DisasterReady berdasarkan data BMKG Open API. 
+"Laporan ini dibuat otomatis oleh Pantara berdasarkan data BMKG Open API. 
 [Kecamatan X diprioritaskan karena curah hujan [X]mm/hari + historis banjir BNPB. 
 Vulnerability score dihitung dari data demografis BPS 2023.]"
 
@@ -247,7 +268,7 @@ Buat laporan yang faktual, jelas, dan dapat langsung digunakan BPBD."""
 
         return f"""
 ╔══════════════════════════════════════════════════════════════╗
-║         LAPORAN SITUASI BENCANA — DisasterReady              ║
+║         LAPORAN SITUASI BENCANA — Pantara              ║
 ╚══════════════════════════════════════════════════════════════╝
 ⏰ Waktu       : {ctx['timestamp']}
 🔴 Status      : {ctx['alert_level'].upper()}

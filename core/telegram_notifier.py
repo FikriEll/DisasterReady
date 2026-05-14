@@ -1,5 +1,5 @@
 """
-DisasterReady — Telegram Notifier
+Pantara — Telegram Notifier
 Module dedicated untuk mengirim notifikasi via Telegram Bot API.
 
 Fitur:
@@ -94,6 +94,21 @@ class TelegramNotifier:
         except Exception as e:
             return {"ok": False, "error": str(e)}
 
+    async def get_chat_name(self, chat_id: str) -> str:
+        """
+        Dapatkan nama user dari chat_id untuk personalisasi.
+        """
+        if not self._bot or not chat_id:
+            return "Warga"
+        try:
+            chat = await self._bot.get_chat(chat_id)
+            if chat.first_name:
+                return f"{chat.first_name} {chat.last_name or ''}".strip()
+            return "Warga"
+        except Exception as e:
+            logger.warning(f"Gagal mengambil nama chat {chat_id}: {e}")
+            return "Warga"
+
     async def send_message(
         self,
         chat_id: str,
@@ -167,7 +182,7 @@ class TelegramNotifier:
 
         message = (
             f"🚨 <b>PERINGATAN DINI BENCANA</b>\n"
-            f"<b>DisasterReady — Sistem Early Warning Indonesia</b>\n"
+            f"<b>Pantara — Sistem Early Warning Indonesia</b>\n"
             f"{'─' * 30}\n\n"
             f"{level_emoji} <b>Status BMKG: {alert_level.upper()}</b>\n"
             f"{disaster_emoji} Potensi: <b>{disaster_type.replace('_', ' ').title()}</b>\n"
@@ -190,7 +205,7 @@ class TelegramNotifier:
             f"🔗 Info terkini: <a href='https://info.bmkg.go.id'>info.bmkg.go.id</a>\n\n"
             f"{'─' * 30}\n"
             f"<i>⏰ {now} WIB</i>\n"
-            f"<i>Sumber: BMKG Open API | DisasterReady AI System</i>"
+            f"<i>Sumber: BMKG Open API | Pantara AI System</i>"
         )
 
         return await self.send_message(chat_id, message)
@@ -231,7 +246,7 @@ class TelegramNotifier:
             report_text = report_text[:MAX_LEN] + "\n\n[...laporan dipotong — lihat dashboard]"
 
         # Wrap dalam format koordinator
-        header = "📋 <b>LAPORAN SITUASI BENCANA</b>\n<b>DisasterReady untuk BPBD</b>\n\n"
+        header = "📋 <b>LAPORAN SITUASI BENCANA</b>\n<b>Pantara untuk BPBD</b>\n\n"
         return await self.send_message(chat_id, header + report_text)
 
 

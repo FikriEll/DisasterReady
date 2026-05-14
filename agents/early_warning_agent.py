@@ -1,8 +1,8 @@
 """
-DisasterReady — Early Warning Agent
+Pantara — Early Warning Agent
 Mengirim notifikasi proaktif ke warga sebelum bencana tiba.
 
-Fitur Unggulan DisasterReady:
+Fitur Unggulan Pantara:
 - Vulnerability scoring transparan (usia + disabilitas + jarak)
 - Kelompok rentan PERTAMA menerima notifikasi
 - Pesan personal dalam Bahasa Indonesia sederhana
@@ -49,18 +49,18 @@ def build_notification_message(
     disability = resident.get("disability", "none")
     tier = vs.priority_tier
 
-    # Sapaan personal berdasarkan kelompok
+    # Sapaan personal
     if age >= 60:
-        greeting = f"Halo, {name}. Sebagai warga lansia"
-        special_note = "Relawan sudah dihubungi untuk membantu Anda."
+        greeting = f"Halo {name}"
+        special_note = "Relawan sudah dihubungi untuk membantu Anda sebagai warga prioritas."
     elif age <= 4:
-        greeting = f"Halo, orang tua/wali dari {name}"
+        greeting = f"Halo orang tua/wali dari {name}"
         special_note = "Prioritaskan keselamatan anak terlebih dahulu."
     elif disability != "none":
-        greeting = f"Halo, {name}"
-        special_note = "Bantuan khusus untuk Anda sudah disiapkan."
+        greeting = f"Halo {name}"
+        special_note = "Bantuan khusus untuk Anda sudah disiapkan oleh tim relawan."
     else:
-        greeting = f"Halo, {name}"
+        greeting = f"Halo {name}"
         special_note = ""
 
     # Level bahaya
@@ -93,18 +93,19 @@ def build_notification_message(
     steps_text = "\n".join(steps)
 
     message = (
-        f"🚨 PERINGATAN DINI BENCANA — DisasterReady\n"
-        f"{'─' * 35}\n"
-        f"{greeting}.\n\n"
-        f"BMKG mengeluarkan status {level_text} untuk wilayah {district_name}.\n"
-        f"📊 Curah hujan: {rainfall_mm:.0f}mm/hari — potensi {disaster_text}.\n\n"
-        f"{special_note + chr(10) if special_note else ''}"
-        f"📋 Langkah yang disarankan:\n{steps_text}\n\n"
-        f"🔗 Info lengkap: info.bmkg.go.id\n"
-        f"📞 Darurat: 119 (BNPB) | 112 (Umum)\n"
-        f"{'─' * 35}\n"
-        f"DisasterReady — Sistem Peringatan Dini Indonesia\n"
-        f"Sumber: BMKG Open API | Waktu: {datetime.now(timezone.utc).strftime('%d-%m-%Y %H:%M')} WIB"
+        f"-PESAN NOTIFIKASI DARURAT-\n\n"
+        f"{greeting},\n"
+        f"Kami dari Sistem Peringatan Dini Bencana Indonesia memberitahu Anda bahwa situasi cuaca di Kecamatan {district_name} sedang mengalami kondisi darurat.\n\n"
+        f"Kecamatan: {district_name}\n"
+        f"Status BMKG: {alert_level}\n"
+        f"Curah hujan: {rainfall_mm:.0f}mm/hari - Potensi {disaster_text}\n\n"
+        f"INSTRUKSI EVAKUASI:\n\n"
+        f"{steps_text}\n\n"
+        f"INFO LAIN:\n\n"
+        f" Nomor darurat: 119 (BNPB) dan 112\n"
+        f" Sumber data: BMKG\n"
+        f" Perlu diingat: situasi cuaca dapat berubah-ubah, pastikan Anda selalu memantau informasi terbaru.\n\n"
+        f"Tunggu instruksi dari petugas keamanan setempat!"
     )
 
     return message
@@ -207,9 +208,26 @@ class EarlyWarningAgent:
             logger.info(f"   📨 Mengirim ke tier {tier}: {len(batch)} warga...")
 
             # Hanya gunakan Groq LLM untuk warga KRITIS & TINGGI (hemat quota)
+            # Generate SATU template per tier, bukan per-warga (hindari bottleneck)
             use_llm = message_generator and tier in ["KRITIS", "TINGGI"]
+            tier_template_msg = None
 
-            # Generate pesan & kumpulkan task notifikasi
+            if use_llm:
+                # Generate 1 pesan template untuk seluruh tier ini
+                sample_resident = resident_map.get(batch[0].resident_id, {})
+                sample_route = evacuation_routes.get(sample_resident.get("id")) if evacuation_routes else None
+                try:
+                    tier_template_msg = await message_generator(
+                        sample_resident, batch[0], alert_level,
+                        primary_district["district_name"],
+                        rainfall_mm, disaster_type, sample_route
+                    )
+                    logger.info(f"   ✅ Template LLM untuk tier {tier} berhasil di-generate")
+                except Exception as e:
+                    logger.warning(f"   ⚠️ Groq gagal untuk tier {tier}: {e}. Fallback ke template statis.")
+                    tier_template_msg = None
+
+            # Kumpulkan semua task notifikasi untuk tier ini (paralel)
             notif_tasks = []
             for vs in batch:
                 resident = resident_map.get(vs.resident_id)
@@ -218,10 +236,9 @@ class EarlyWarningAgent:
 
                 route_info = evacuation_routes.get(resident["id"]) if evacuation_routes else None
 
-                if use_llm:
-                    # Sequential dengan delay agar tidak hit Groq rate limit
-                    msg = await message_generator(resident, vs, alert_level, primary_district["district_name"], rainfall_mm, disaster_type, route_info)
-                    await asyncio.sleep(1.2)  # 1.2s delay → maks ~50 req/menit, di bawah limit Groq
+                # Pakai template tier jika LLM berhasil, atau fallback ke template statis per-warga
+                if tier_template_msg:
+                    msg = tier_template_msg
                 else:
                     msg = build_notification_message(
                         resident, vs, alert_level,
@@ -279,11 +296,19 @@ class EarlyWarningAgent:
             demo_chat_id = os.getenv("TELEGRAM_DEMO_CHAT_ID")
             notifier = get_telegram_notifier()
             if demo_chat_id and notifier.is_configured:
-                demo_resident = affected_residents[0] if affected_residents else {"name": "Warga Demo", "age": 65, "disability": "none"}
+                # Dapatkan nama asli dari Telegram untuk demo yang lebih personal
+                telegram_name = await notifier.get_chat_name(demo_chat_id)
+                demo_resident = affected_residents[0] if affected_residents else {"name": telegram_name, "age": 30, "disability": "none"}
+                # Timpa nama resident dengan nama telegram agar lebih personal
+                demo_resident["name"] = telegram_name
+                
                 demo_vs = ranked_scores[0] if ranked_scores else None
                 if not demo_vs:
                     from core.vulnerability_scorer import VulnerabilityScore
-                    demo_vs = VulnerabilityScore("demo_id", "Warga Demo", 0, "KRITIS")
+                    demo_vs = VulnerabilityScore("demo_id", telegram_name, 0, "KRITIS")
+                else:
+                    # Update nama di vulnerability score juga
+                    demo_vs.resident_name = telegram_name
                 
                 demo_route = evacuation_routes.get(demo_resident.get("id")) if evacuation_routes else None
                 if message_generator:
@@ -291,8 +316,7 @@ class EarlyWarningAgent:
                 else:
                     demo_msg = build_notification_message(demo_resident, demo_vs, alert_level, primary_district["district_name"], rainfall_mm, disaster_type, demo_route)
                 
-                # Tambahkan header khusus demo
-                demo_msg = "🔔 [DEMO BROADCAST] 🔔\nIni adalah contoh pesan yang diterima oleh warga prioritas (Kritis):\n\n" + demo_msg
+                # Kirim langsung tanpa header demo
                 await notifier.send_message(chat_id=demo_chat_id, message=demo_msg)
                 logger.info(f"✅ Demo notification berhasil di-push ke {demo_chat_id}")
         except Exception as e:

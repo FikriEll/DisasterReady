@@ -1,5 +1,5 @@
 """
-DisasterReady — Prediction Agent
+Pantara — Prediction Agent
 Memetakan wilayah berisiko berdasarkan data cuaca dan topografi.
 
 Model: scikit-learn (Logistic Regression + rule-based overlay)

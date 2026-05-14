@@ -6,6 +6,62 @@
 const API_BASE = window.location.origin;
 let sseSource = null;
 let currentDisasterId = null;
+let currentLanguage = localStorage.getItem('pantara_lang') || 'ID';
+
+const TRANSLATIONS = {
+  ID: {
+    hq_command: 'PANTARA',
+    header_title: 'PANTARA PUSAT KOMANDO',
+    system_active: 'Sistem Aktif',
+    cmd_center: 'Command Center',
+    audit_logs: 'Audit Logs',
+    deploy_btn: 'DEPLOY RAPID RESPONSE',
+    reset_btn: 'RESET OP',
+    confirm_btn: 'CONFIRM FIELD OP',
+    active_alerts: 'Bencana Aktif',
+    residents_notified: 'Warga Ternotifikasi',
+    volunteers_deployed: 'Relawan Diterjunkan',
+    critical_rescues: 'Evakuasi Kritis',
+    tactical_map: 'Peta Taktis Operasional',
+    live_feed: 'BMKG Live Feed',
+    active_logs: 'Log Kejadian Bencana Aktif',
+    processing: 'Memproses',
+    waiting_sim: 'Menunggu data simulasi...',
+    waiting_logs: 'Menunggu log sistem...',
+    status_pipeline: 'Status Pipeline',
+    completed: 'Selesai',
+    notified: 'Ternotifikasi',
+    critical: 'Kritis',
+    volunteers: 'Relawan',
+    close: 'Tutup'
+  },
+  EN: {
+    hq_command: 'PANTARA',
+    header_title: 'PANTARA COMMAND CENTER',
+    system_active: 'System Active',
+    cmd_center: 'Command Center',
+    audit_logs: 'Audit Logs',
+    deploy_btn: 'DEPLOY RAPID RESPONSE',
+    reset_btn: 'RESET OP',
+    confirm_btn: 'CONFIRM FIELD OP',
+    active_alerts: 'Active Alerts',
+    residents_notified: 'Residents Notified',
+    volunteers_deployed: 'Volunteers Deployed',
+    critical_rescues: 'Critical Rescues',
+    tactical_map: 'Tactical Overview Map',
+    live_feed: 'BMKG Live Feed',
+    active_logs: 'Active Disaster Events Log',
+    processing: 'Processing',
+    waiting_sim: 'Waiting for simulation...',
+    waiting_logs: 'Waiting for system logs...',
+    status_pipeline: 'Pipeline Status',
+    completed: 'Completed',
+    notified: 'Notified',
+    critical: 'Critical',
+    volunteers: 'Volunteers',
+    close: 'Close'
+  }
+};
 let simStartTime = null;
 let pipelineTimer = null;
 let lastRiskMapTimestamp = null;
@@ -92,15 +148,14 @@ function updateDashboard(data) {
   const riskMaps = data.risk_maps || [];
   const assignments = data.assignments || [];
 
-  // ── Restore currentDisasterId setelah page refresh ──────────────────────
-  // currentDisasterId adalah variabel JS yang hilang saat refresh.
-  // Coba pulihkan dari: (1) bencana aktif, atau (2) last_disaster_id di state.
-  if (!currentDisasterId) {
+  // ── Restore currentDisasterId ──────────────────────────────────────────
+  if (systemState.current_disaster_id) {
+    currentDisasterId = systemState.current_disaster_id;
+  } else if (!currentDisasterId) {
     const activeDisaster = disasters.find(d => d.status === 'active');
     if (activeDisaster) {
       currentDisasterId = activeDisaster.id;
-    } else if (systemState.last_disaster_id &&
-               (riskMaps.length > 0 || assignments.length > 0)) {
+    } else if (systemState.last_disaster_id) {
       currentDisasterId = systemState.last_disaster_id;
     }
   }
@@ -193,6 +248,32 @@ function updateDashboard(data) {
   if (badge) badge.textContent = alerts.length;
   const totalCount = document.getElementById('alert-total-count');
   if (totalCount) totalCount.textContent = `${alerts.length} alert`;
+
+  // ── Sync Sim Results Toast (Real-time update) ──────────────────────────
+  const simToast = document.getElementById('sim-results');
+  if (simToast && !simToast.classList.contains('hidden') && currentDisasterId) {
+    const currentAlert = alerts.find(a => a.disaster_id === currentDisasterId) || alerts[alerts.length - 1];
+    if (currentAlert) {
+      updateValueWithAnim('r-notified', currentAlert.total_notified || 0);
+      updateValueWithAnim('r-critical', currentAlert.tier_breakdown?.KRITIS || 0);
+    }
+    const currentAssignment = assignments.find(a => a.disaster_id === currentDisasterId) || assignments[assignments.length - 1];
+    if (currentAssignment) {
+      updateValueWithAnim('r-volunteers', currentAssignment.assignments?.length || 0);
+    }
+  }
+}
+
+function updateValueWithAnim(id, newVal) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (el.textContent === newVal.toString()) return;
+  
+  el.classList.add('scale-125', 'text-yellow-400');
+  setTimeout(() => {
+    el.textContent = newVal;
+    el.classList.remove('scale-125', 'text-yellow-400');
+  }, 200);
 }
 
 function updateMetrics(disasters, alerts, systemState) {
@@ -236,8 +317,8 @@ function updateAlertFeed(alerts) {
   const feed = document.getElementById('alert-feed');
   if (!feed) return;
 
-  if (alerts.length === 0) {
-    feed.innerHTML = '<div class="text-on-surface-variant text-sm text-center py-8">Menunggu data simulasi...</div>';
+  if (!alerts || !alerts.length) {
+    feed.innerHTML = `<div class="text-on-surface-variant dark:text-neutral-400 text-sm text-center py-8">${TRANSLATIONS[currentLanguage].waiting_sim}</div>`;
     return;
   }
 
@@ -248,16 +329,16 @@ function updateAlertFeed(alerts) {
     
     let bgClass, borderClass, iconColor, textColor, iconName;
     if (level === 'awas' || level === 'kritis') {
-      bgClass = 'bg-[#fef9c3]'; borderClass = 'border-[#fef08a]';
-      iconColor = 'text-[#ca8a04]'; textColor = 'text-[#854d0e]';
+      bgClass = 'bg-[#fef9c3] dark:bg-yellow-900/20'; borderClass = 'border-[#fef08a] dark:border-yellow-800/50';
+      iconColor = 'text-[#ca8a04] dark:text-yellow-500'; textColor = 'text-[#854d0e] dark:text-yellow-200';
       iconName = 'error';
     } else if (level === 'siaga') {
-      bgClass = 'bg-[#fee2e2]'; borderClass = 'border-[#fecaca]';
-      iconColor = 'text-primary'; textColor = 'text-primary';
+      bgClass = 'bg-[#fee2e2] dark:bg-red-900/20'; borderClass = 'border-[#fecaca] dark:border-red-800/50';
+      iconColor = 'text-primary dark:text-red-500'; textColor = 'text-primary dark:text-red-200';
       iconName = 'emergency';
     } else {
-      bgClass = 'bg-[#ffedd5]'; borderClass = 'border-[#fed7aa]';
-      iconColor = 'text-[#ea580c]'; textColor = 'text-[#9a3412]';
+      bgClass = 'bg-[#ffedd5] dark:bg-orange-900/20'; borderClass = 'border-[#fed7aa] dark:border-orange-800/50';
+      iconColor = 'text-[#ea580c] dark:text-orange-500'; textColor = 'text-[#9a3412] dark:text-orange-200';
       iconName = 'warning';
     }
     
@@ -276,11 +357,11 @@ function updateAlertFeed(alerts) {
         <span class="material-symbols-outlined ${iconColor}" style="font-variation-settings: 'FILL' 1;">${iconName}</span>
         <span class="font-label-md text-label-md ${textColor} uppercase tracking-wider">${a.alert_level}</span>
       </div>
-      <p class="font-body-md text-body-md text-on-surface-variant">
-        Wilayah Terdampak: <b>${formattedDistricts}</b><br>
-        Ternotifikasi: <b>${a.total_notified || 0}</b> warga rentan.
+      <p class="font-body-md text-body-md text-on-surface-variant dark:text-neutral-300">
+        ${currentLanguage === 'ID' ? 'Wilayah Terdampak' : 'Affected Areas'}: <b>${formattedDistricts}</b><br>
+        ${currentLanguage === 'ID' ? 'Ternotifikasi' : 'Notified'}: <b>${a.total_notified || 0}</b> ${currentLanguage === 'ID' ? 'warga rentan' : 'vulnerable residents'}.
       </p>
-      <span class="text-status-sm font-status-sm text-on-surface-variant block mt-2">${time}</span>
+      <span class="text-status-sm font-status-sm text-on-surface-variant dark:text-neutral-400 block mt-2">${time}</span>
     `;
     feed.appendChild(item);
   });
@@ -291,27 +372,26 @@ function updateAlertTable(alerts) {
   if (!tbody) return;
 
   if (alerts.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-on-surface-variant">Jalankan simulasi untuk melihat alert</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-on-surface-variant">${TRANSLATIONS[currentLanguage].waiting_sim}</td></tr>`;
     return;
   }
 
   tbody.innerHTML = '';
   [...alerts].reverse().forEach(a => {
     const time = a.sent_at ? new Date(a.sent_at).toLocaleString('id-ID') : '--';
-    const level = a.alert_level || '—';
-    
+    const level = (a.alert_level || 'waspada').toLowerCase();
     let levelBadge = '';
-    if (level === 'Awas') levelBadge = '<span class="px-2 py-1 bg-secondary-fixed text-on-secondary-fixed rounded text-status-sm font-status-sm">Awas</span>';
-    else if (level === 'Siaga') levelBadge = '<span class="px-2 py-1 bg-[#ffedd5] text-[#9a3412] rounded text-status-sm font-status-sm">Siaga</span>';
-    else levelBadge = '<span class="px-2 py-1 bg-surface-variant text-on-surface-variant rounded text-status-sm font-status-sm">Waspada</span>';
+    if (level === 'awas' || level === 'kritis') levelBadge = `<span class="px-2 py-1 bg-error-container text-on-error-container rounded text-status-sm font-status-sm">${currentLanguage === 'ID' ? 'Kritis' : 'Critical'}</span>`;
+    else if (level === 'siaga') levelBadge = `<span class="px-2 py-1 bg-tertiary-container text-on-tertiary-container rounded text-status-sm font-status-sm">${currentLanguage === 'ID' ? 'Siaga' : 'Warning'}</span>`;
+    else levelBadge = `<span class="px-2 py-1 bg-surface-variant text-on-surface-variant rounded text-status-sm font-status-sm">${currentLanguage === 'ID' ? 'Waspada' : 'Advisory'}</span>`;
 
     const tr = document.createElement('tr');
-    tr.className = 'border-b border-outline-variant hover:bg-surface-container-highest transition-colors';
+    tr.className = 'border-b border-outline-variant dark:border-neutral-800 hover:bg-surface-container-highest dark:hover:bg-neutral-800 transition-colors';
     
     // Calculate a mock score out of 100 based on KRITIS
     const vulnScore = Math.min(100, Math.max(10, (a.tier_breakdown?.KRITIS || 0)));
-    let scoreColor = vulnScore > 70 ? 'bg-primary' : (vulnScore > 40 ? 'bg-[#ea580c]' : 'bg-outline');
-    let textColor = vulnScore > 70 ? 'text-primary' : (vulnScore > 40 ? 'text-[#ea580c]' : 'text-on-surface-variant');
+    let scoreColor = vulnScore > 70 ? 'bg-primary dark:bg-red-600' : (vulnScore > 40 ? 'bg-[#ea580c] dark:bg-orange-600' : 'bg-outline dark:bg-neutral-600');
+    let textColor = vulnScore > 70 ? 'text-primary dark:text-red-400' : (vulnScore > 40 ? 'text-[#ea580c] dark:text-orange-400' : 'text-on-surface-variant dark:text-neutral-400');
     let scoreLabel = vulnScore > 70 ? 'High' : (vulnScore > 40 ? 'Med' : 'Low');
 
     const formatDistrict = (d) => {
@@ -332,9 +412,9 @@ function updateAlertTable(alerts) {
         <span class="text-status-sm font-status-sm ${textColor}">${scoreLabel} (${vulnScore})</span>
         </div>
       </td>
-      <td class="p-3"><span class="text-secondary font-medium">Processing</span></td>
+      <td class="p-3"><span class="text-secondary dark:text-blue-400 font-medium">${TRANSLATIONS[currentLanguage].processing}</span></td>
       <td class="p-3">
-        <button onclick="openReport()" class="text-secondary border border-secondary px-3 py-1 rounded text-status-sm font-status-sm hover:bg-secondary-container hover:text-on-secondary-container transition-colors flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">smart_toy</span> AI Report</button>
+        <button onclick="openReport()" class="text-secondary dark:text-blue-400 border border-secondary dark:border-blue-400 px-3 py-1 rounded text-status-sm font-status-sm hover:bg-secondary-container dark:hover:bg-blue-900/40 hover:text-on-secondary-container dark:hover:text-blue-200 transition-colors flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">smart_toy</span> AI Report</button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -363,14 +443,14 @@ function updateAuditLog(auditLog) {
       : '--';
 
     const div = document.createElement('div');
-    div.className = 'p-3 bg-surface-container-highest rounded-lg border border-outline-variant';
+    div.className = 'p-3 bg-surface-container-highest dark:bg-neutral-800 rounded-lg border border-outline-variant dark:border-neutral-700';
     div.innerHTML = `
       <div class="flex items-center justify-between mb-1">
-        <span class="font-label-md text-label-md text-primary uppercase">${entry.agent || 'SYSTEM'}</span>
-        <span class="text-status-sm font-status-sm text-on-surface-variant">${time}</span>
+        <span class="font-label-md text-label-md text-primary dark:text-red-400 uppercase">${entry.agent || 'SYSTEM'}</span>
+        <span class="text-status-sm font-status-sm text-on-surface-variant dark:text-neutral-400">${time}</span>
       </div>
-      <div class="font-body-md text-body-md text-on-surface mb-1"><strong>${entry.action || '—'}</strong></div>
-      <div class="font-body-md text-body-md text-on-surface-variant break-words">${(entry.result || '')}</div>
+      <div class="font-body-md text-body-md text-on-surface dark:text-neutral-100 mb-1"><strong>${entry.action || '—'}</strong></div>
+      <div class="font-body-md text-body-md text-on-surface-variant dark:text-neutral-400 break-words">${(entry.result || '')}</div>
     `;
     feed.appendChild(div);
   });
@@ -458,39 +538,34 @@ async function showSimResults(elapsed) {
   }
   document.getElementById('r-elapsed').textContent = elapsed + 's';
 
+  // Beri waktu tambahan 1 detik agar Firebase terupdate sepenuhnya sebelum fetch
+  await new Promise(r => setTimeout(r, 1000));
+
   // Coba ambil data terbaru dari API
   try {
-    const res = await fetch(`${API_BASE}/api/status`);
-    const status = await res.json();
-
     if (currentDisasterId) {
       const assignRes = await fetch(`${API_BASE}/api/assignments/${currentDisasterId}`);
       if (assignRes.ok) {
         const assignments = await assignRes.json();
         document.getElementById('r-volunteers').textContent =
-          assignments.assignments?.length || '—';
-      } else if (assignRes.status === 404) {
-        console.log('[INFO] Assignment tidak ditemukan untuk disaster:', currentDisasterId);
-        document.getElementById('r-volunteers').textContent = '—';
+          assignments.assignments?.length || '0';
       } else {
-        console.error('[ERROR] Assignment fetch error:', assignRes.status);
+        document.getElementById('r-volunteers').textContent = '—';
       }
     }
 
     const alertRes = await fetch(`${API_BASE}/api/alerts/recent`);
     if (alertRes.ok) {
       const alerts = await alertRes.json();
-      const latest = alerts[0];
+      // Cari alert yang sesuai dengan disaster ID saat ini
+      const latest = alerts.find(a => a.disaster_id === currentDisasterId) || alerts[0];
       if (latest) {
-        document.getElementById('r-notified').textContent = latest.total_notified || '—';
-        document.getElementById('r-critical').textContent = latest.tier_breakdown?.KRITIS || '—';
+        document.getElementById('r-notified').textContent = latest.total_notified || '0';
+        document.getElementById('r-critical').textContent = latest.tier_breakdown?.KRITIS || '0';
       }
     }
   } catch (e) {
     console.error('[ERROR] showSimResults error:', e);
-    document.getElementById('r-notified').textContent = '—';
-    document.getElementById('r-critical').textContent = '—';
-    document.getElementById('r-volunteers').textContent = '—';
   }
 
   // Ambil laporan
@@ -501,15 +576,23 @@ async function showSimResults(elapsed) {
       if (reports.length > 0) {
         const reportEl = document.getElementById('report-content');
         if (reportEl) {
-          // Parse as simple markdown (if needed) or keep as raw text
           reportEl.textContent = reports[reports.length - 1].content || '—';
-          // Auto-open report panel to showcase the feature
           openReport();
         }
       }
     }
   } catch (e) {
     console.error('[ERROR] Report fetch error:', e);
+  }
+}
+
+function closeSimResults() {
+  const simToast = document.getElementById('sim-results');
+  if (simToast) {
+    simToast.classList.add('translate-y-20', 'opacity-0');
+    setTimeout(() => {
+      simToast.classList.add('hidden');
+    }, 300);
   }
 }
 
@@ -679,28 +762,112 @@ function triggerOverride() {
 
 // ── Theme Toggle ──────────────────────────────────────────────────────────────
 function initTheme() {
-  const savedTheme = localStorage.getItem('pantara_bencana_theme');
-  if (savedTheme) {
-    document.documentElement.setAttribute('data-theme', savedTheme);
+  const savedTheme = localStorage.getItem('pantara_bencana_theme') || 'light';
+  applyTheme(savedTheme);
+}
+
+function applyTheme(theme) {
+  // Update CSS variables (style.css)
+  document.documentElement.setAttribute('data-theme', theme);
+  // Update Tailwind dark mode (uses class="dark" on <html>)
+  if (theme === 'dark') {
+    document.documentElement.classList.add('dark');
   } else {
-    document.documentElement.setAttribute('data-theme', 'light');
+    document.documentElement.classList.remove('dark');
   }
-  updateThemeIcon();
+  updateThemeIcon(theme);
+
+  // Sync map theme if function exists
+  if (typeof switchMapTheme === 'function') {
+    switchMapTheme(theme);
+  }
 }
 
 function toggleTheme() {
-  const currentTheme = document.documentElement.getAttribute('data-theme');
-  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', newTheme);
-  localStorage.setItem('pantara_bencana_theme', newTheme);
-  updateThemeIcon();
+  const current = document.documentElement.getAttribute('data-theme') || 'light';
+  const next = current === 'light' ? 'dark' : 'light';
+  localStorage.setItem('pantara_bencana_theme', next);
+  applyTheme(next);
 }
 
-function updateThemeIcon() {
-  const theme = document.documentElement.getAttribute('data-theme');
+// ── Language Toggle Logic ───────────────────────────────────────────────────
+
+function toggleLanguage() {
+  currentLanguage = currentLanguage === 'ID' ? 'EN' : 'ID';
+  localStorage.setItem('pantara_lang', currentLanguage);
+  applyLanguage(currentLanguage);
+}
+
+function applyLanguage(lang) {
+  const t = TRANSLATIONS[lang];
+  const langLabel = document.getElementById('lang-label');
+  if (langLabel) langLabel.textContent = lang;
+  
+  // Sidebar
+  const hqCmd = document.getElementById('lang-hq-command');
+  if (hqCmd) hqCmd.textContent = t.hq_command;
+  
+  const sysActive = document.getElementById('lang-system-active');
+  if (sysActive) sysActive.textContent = t.system_active;
+  
+  const cmdCenter = document.getElementById('lang-cmd-center');
+  if (cmdCenter) cmdCenter.textContent = t.cmd_center;
+  
+  const auditLogs = document.getElementById('lang-audit-logs');
+  if (auditLogs) auditLogs.textContent = t.audit_logs;
+
+  const btnSim = document.getElementById('btn-simulate');
+  if (btnSim) btnSim.textContent = t.deploy_btn;
+  
+  const btnReset = document.getElementById('btn-reset');
+  if (btnReset) btnReset.textContent = t.reset_btn;
+  
+  const btnConfirm = document.getElementById('btn-confirm');
+  if (btnConfirm) btnConfirm.textContent = t.confirm_btn;
+
+  // Header Extra
+  const qGuard = document.getElementById('lang-quantum-guard');
+  if (qGuard) qGuard.textContent = lang === 'ID' ? 'Quantum Guard Aktif' : 'Quantum Guard Active';
+
+  // Metrics
+  const m1 = document.getElementById('lang-active-alerts');
+  if (m1) m1.textContent = t.active_alerts;
+  const m2 = document.getElementById('lang-notified');
+  if (m2) m2.textContent = t.residents_notified;
+  const m3 = document.getElementById('lang-deployed');
+  if (m3) m3.textContent = t.volunteers_deployed;
+  const m4 = document.getElementById('lang-rescues');
+  if (m4) m4.textContent = t.critical_rescues;
+
+  // Titles
+  const mapTitle = document.getElementById('lang-map-title');
+  if (mapTitle) mapTitle.innerHTML = `<span class="material-symbols-outlined text-secondary dark:text-blue-400">map</span> ${t.tactical_map}`;
+  
+  const feedTitle = document.getElementById('lang-feed-title');
+  if (feedTitle) feedTitle.textContent = t.live_feed;
+  
+  const logTitle = document.getElementById('lang-log-title');
+  if (logTitle) logTitle.innerHTML = `<span class="material-symbols-outlined text-on-surface-variant dark:text-neutral-400">view_list</span> ${t.active_logs}`;
+
+  const auditTitle = document.getElementById('lang-audit-title');
+  if (auditTitle) auditTitle.textContent = t.audit_logs;
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  applyLanguage(currentLanguage);
+});
+
+function updateThemeIcon(theme) {
   const iconEl = document.getElementById('theme-icon');
+  const btnEl = document.getElementById('theme-toggle');
   if (iconEl) {
-    iconEl.textContent = theme === 'dark' ? '☀️' : '🌙';
+    // Use Material Symbols icons
+    iconEl.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
+  }
+  if (btnEl) {
+    // Add a subtle tooltip
+    btnEl.title = theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
   }
 }
 

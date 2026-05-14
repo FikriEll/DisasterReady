@@ -1,352 +1,469 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
+
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>PANTARA Bencana - Command Center</title>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>PANTARA Bencana - Command Center</title>
 
-<!-- Tailwind -->
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
 
-<!-- Leaflet.js Map -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet.js Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
-<!-- We will use Tailwind instead of style.css but we can still import it if there are specific overrides -->
-<link rel="stylesheet" href="css/style.css" />
+  <!-- We will use Tailwind instead of style.css but we can still import it if there are specific overrides -->
+  <link rel="stylesheet" href="css/style.css" />
 
-<script id="tailwind-config">
-tailwind.config = {
-  darkMode: "class",
-  theme: {
-    extend: {
-      "colors": {
-              "primary-fixed": "#ffdad5",
-              "on-primary-fixed": "#410001",
-              "surface": "#f9f9ff",
-              "primary": "#b5110e",
-              "on-error-container": "#93000a",
-              "on-surface": "#181c23",
-              "on-secondary-fixed-variant": "#004493",
-              "on-secondary": "#ffffff",
-              "on-tertiary-container": "#f6f9ff",
-              "secondary-fixed-dim": "#adc7ff",
-              "surface-container": "#ebedf9",
-              "on-tertiary-fixed": "#001e30",
-              "background": "#f9f9ff",
-              "tertiary-fixed": "#cbe6ff",
-              "surface-container-low": "#f1f3fe",
-              "surface-container-highest": "#dfe2ed",
-              "inverse-on-surface": "#eef0fb",
-              "primary-container": "#d93025",
-              "on-tertiary": "#ffffff",
-              "on-background": "#181c23",
-              "on-tertiary-fixed-variant": "#004b71",
-              "inverse-surface": "#2c3039",
-              "surface-dim": "#d7dae5",
-              "on-primary-container": "#fff8f7",
-              "outline": "#906f6b",
-              "on-surface-variant": "#5c403c",
-              "tertiary-container": "#0079b3",
-              "on-secondary-fixed": "#001a41",
-              "error": "#ba1a1a",
-              "on-secondary-container": "#fefcff",
-              "secondary": "#0058bb",
-              "surface-tint": "#bb1713",
-              "surface-container-lowest": "#ffffff",
-              "on-error": "#ffffff",
-              "surface-container-high": "#e5e8f3",
-              "primary-fixed-dim": "#ffb4a9",
-              "tertiary-fixed-dim": "#8fcdff",
-              "error-container": "#ffdad6",
-              "tertiary": "#005f8e",
-              "secondary-fixed": "#d8e2ff",
-              "surface-variant": "#dfe2ed",
-              "secondary-container": "#1471e6",
-              "outline-variant": "#e5beb8",
-              "inverse-primary": "#ffb4a9",
-              "surface-bright": "#f9f9ff",
-              "on-primary": "#ffffff",
-              "on-primary-fixed-variant": "#930004"
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "primary-fixed": "#ffdad5",
+            "on-primary-fixed": "#410001",
+            "surface": "#f9f9ff",
+            "primary": "#b5110e",
+            "on-error-container": "#93000a",
+            "on-surface": "#181c23",
+            "on-secondary-fixed-variant": "#004493",
+            "on-secondary": "#ffffff",
+            "on-tertiary-container": "#f6f9ff",
+            "secondary-fixed-dim": "#adc7ff",
+            "surface-container": "#ebedf9",
+            "on-tertiary-fixed": "#001e30",
+            "background": "#f9f9ff",
+            "tertiary-fixed": "#cbe6ff",
+            "surface-container-low": "#f1f3fe",
+            "surface-container-highest": "#dfe2ed",
+            "inverse-on-surface": "#eef0fb",
+            "primary-container": "#d93025",
+            "on-tertiary": "#ffffff",
+            "on-background": "#181c23",
+            "on-tertiary-fixed-variant": "#004b71",
+            "inverse-surface": "#2c3039",
+            "surface-dim": "#d7dae5",
+            "on-primary-container": "#fff8f7",
+            "outline": "#906f6b",
+            "on-surface-variant": "#5c403c",
+            "tertiary-container": "#0079b3",
+            "on-secondary-fixed": "#001a41",
+            "error": "#ba1a1a",
+            "on-secondary-container": "#fefcff",
+            "secondary": "#0058bb",
+            "surface-tint": "#bb1713",
+            "surface-container-lowest": "#ffffff",
+            "on-error": "#ffffff",
+            "surface-container-high": "#e5e8f3",
+            "primary-fixed-dim": "#ffb4a9",
+            "tertiary-fixed-dim": "#8fcdff",
+            "error-container": "#ffdad6",
+            "tertiary": "#005f8e",
+            "secondary-fixed": "#d8e2ff",
+            "surface-variant": "#dfe2ed",
+            "secondary-container": "#1471e6",
+            "outline-variant": "#e5beb8",
+            "inverse-primary": "#ffb4a9",
+            "surface-bright": "#f9f9ff",
+            "on-primary": "#ffffff",
+            "on-primary-fixed-variant": "#930004"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "md": "24px",
+            "sm": "16px",
+            "gutter": "20px",
+            "margin-mobile": "16px",
+            "xl": "48px",
+            "margin-desktop": "32px",
+            "base": "4px",
+            "xs": "8px",
+            "lg": "32px"
+          },
+          "fontFamily": {
+            "headline-lg": ["Inter"],
+            "label-md": ["Inter"],
+            "body-lg": ["Inter"],
+            "headline-lg-mobile": ["Inter"],
+            "body-md": ["Inter"],
+            "display-lg": ["Inter"],
+            "status-sm": ["Inter"],
+            "title-md": ["Inter"]
+          },
+          "fontSize": {
+            "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+            "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "status-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+            "title-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+          }
+        },
       },
-      "borderRadius": {
-              "DEFAULT": "0.125rem",
-              "lg": "0.25rem",
-              "xl": "0.5rem",
-              "full": "0.75rem"
-      },
-      "spacing": {
-              "md": "24px",
-              "sm": "16px",
-              "gutter": "20px",
-              "margin-mobile": "16px",
-              "xl": "48px",
-              "margin-desktop": "32px",
-              "base": "4px",
-              "xs": "8px",
-              "lg": "32px"
-      },
-      "fontFamily": {
-              "headline-lg": ["Inter"],
-              "label-md": ["Inter"],
-              "body-lg": ["Inter"],
-              "headline-lg-mobile": ["Inter"],
-              "body-md": ["Inter"],
-              "display-lg": ["Inter"],
-              "status-sm": ["Inter"],
-              "title-md": ["Inter"]
-      },
-      "fontSize": {
-              "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
-              "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
-              "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
-              "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
-              "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
-              "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
-              "status-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
-              "title-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
-      }
-    },
-  },
-}
-</script>
+    }
+  </script>
 </head>
-<body class="bg-background text-on-background font-body-md min-h-screen flex">
-<!-- SideNavBar -->
-<nav class="flex bg-surface-container border-r border-outline-variant docked left-0 h-full w-64 fixed top-16 bottom-0 flex-col z-40">
-<div class="p-gutter border-b border-outline-variant flex items-center gap-3">
-<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center overflow-hidden shrink-0 text-2xl">
-🚨
-</div>
-<div>
-<h2 class="font-title-md text-title-md text-on-surface-variant">HQ COMMAND</h2>
-<p class="font-label-md text-label-md text-on-surface-variant opacity-70">Sistem Aktif</p>
-</div>
-</div>
-<div class="flex-1 overflow-y-auto py-sm flex flex-col gap-xs">
-<a class="flex items-center gap-3 bg-secondary-container text-on-secondary-container rounded-lg px-4 py-3 mx-2 hover:bg-surface-container-highest transition-all duration-150 nav-link" href="#" id="nav-dashboard" onclick="showView('dashboard')">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
-<span class="font-label-md text-label-md">Command Center</span>
-</a>
-<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-highest rounded-lg px-4 py-3 mx-2 transition-all nav-link" href="#" id="nav-audit" onclick="showView('audit')">
-<span class="material-symbols-outlined">history_edu</span>
-<span class="font-label-md text-label-md">Audit Logs</span>
-</a>
 
-<div class="px-4 py-sm mt-sm">
-<button id="btn-simulate" onclick="triggerSimulation()" class="w-full bg-primary text-on-primary font-label-md text-label-md py-3 rounded-lg uppercase tracking-wide hover:bg-primary-container transition-colors duration-200">
-DEPLOY RAPID RESPONSE
-</button>
-</div>
-<div class="px-4 py-1">
-<button id="btn-reset" onclick="resetSimulation()" class="w-full bg-surface-variant text-on-surface-variant border border-outline-variant font-label-md text-label-md py-2 rounded-lg uppercase tracking-wide hover:bg-surface-container-highest transition-colors duration-200">
-RESET OP
-</button>
-</div>
-<div class="px-4 py-1 mt-2">
-  <button id="btn-confirm" onclick="confirmAssignment()" class="w-full bg-secondary text-on-secondary font-label-md text-label-md py-2 rounded-lg uppercase tracking-wide hover:bg-secondary-container transition-colors duration-200">
-  CONFIRM FIELD OP
-  </button>
-</div>
-</div>
-</nav>
+<body
+  class="bg-background dark:bg-neutral-950 text-on-background dark:text-neutral-100 font-body-md min-h-screen flex transition-colors duration-300">
+  <!-- SideNavBar -->
+  <nav
+    class="flex bg-surface-container dark:bg-neutral-900 border-r border-outline-variant dark:border-neutral-800 docked left-0 h-full w-64 fixed top-16 bottom-0 flex-col z-40 transition-colors duration-300">
+    <div class="p-gutter border-b border-outline-variant dark:border-neutral-800 flex items-center gap-3">
+      <div
+        class="w-12 h-12 rounded-xl bg-surface-container-highest dark:bg-neutral-800 flex items-center justify-center overflow-hidden shrink-0 border border-outline-variant">
+        <img src="img/logo.png" alt="Pantara Logo" class="w-10 h-10 object-contain drop-shadow-sm" />
+      </div>
+      <div>
+        <h3 id="lang-hq-command" class="font-title-md text-title-md text-on-surface-variant dark:text-neutral-200">
+          PANTARA</h3>
+        <p id="lang-system-active"
+          class="font-label-md text-label-md text-on-surface-variant dark:text-neutral-400 opacity-70">Sistem Aktif</p>
+      </div>
+    </div>
+    <div class="flex-1 overflow-y-auto py-sm flex flex-col gap-xs">
+      <a class="flex items-center gap-3 bg-secondary-container dark:bg-blue-900/40 text-on-secondary-container dark:text-blue-200 rounded-lg px-4 py-3 mx-2 hover:bg-surface-container-highest dark:hover:bg-neutral-700 transition-all duration-150 nav-link"
+        href="#" id="nav-dashboard" onclick="showView('dashboard')">
+        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+        <span id="lang-cmd-center" class="font-label-md text-label-md">Command Center</span>
+      </a>
+      <a class="flex items-center gap-3 text-on-surface-variant dark:text-neutral-400 hover:bg-surface-container-highest dark:hover:bg-neutral-700 rounded-lg px-4 py-3 mx-2 transition-all nav-link"
+        href="#" id="nav-audit" onclick="showView('audit')">
+        <span class="material-symbols-outlined">history_edu</span>
+        <span id="lang-audit-logs" class="font-label-md text-label-md">Audit Logs</span>
+      </a>
 
-<div class="flex-1 flex flex-col ml-64 min-w-0">
-<!-- TopAppBar -->
-<header class="bg-surface border-b border-outline-variant docked full-width top-0 flex justify-between items-center w-full px-gutter h-16 z-50 sticky">
-<div class="flex items-center gap-4">
-<span class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary uppercase tracking-tighter">PANTARA Bencana</span>
-</div>
-<div class="flex items-center gap-gutter">
-<div id="alert-banner" class="hidden items-center gap-2 px-3 py-1 bg-error-container border border-error text-on-error-container rounded-full font-label-md text-label-md animate-pulse">
-  <span class="w-2 h-2 rounded-full bg-primary"></span>
-  <span id="alert-banner-text">Active Disaster</span>
-</div>
-<div id="time-display" class="font-body-md text-body-md text-on-surface-variant hidden md:block">
-  --:--:--
-</div>
+      <div class="px-4 py-sm mt-sm">
+        <button id="btn-simulate" onclick="triggerSimulation()"
+          class="w-full bg-primary dark:bg-red-700 text-on-primary font-label-md text-label-md py-3 rounded-lg uppercase tracking-wide hover:bg-primary-container dark:hover:bg-red-600 transition-colors duration-200">
+          DEPLOY RAPID RESPONSE
+        </button>
+      </div>
+      <div class="px-4 py-1">
+        <button id="btn-reset" onclick="resetSimulation()"
+          class="w-full bg-surface-variant dark:bg-neutral-800 text-on-surface-variant dark:text-neutral-300 border border-outline-variant dark:border-neutral-700 font-label-md text-label-md py-2 rounded-lg uppercase tracking-wide hover:bg-surface-container-highest dark:hover:bg-neutral-700 transition-colors duration-200">
+          RESET OP
+        </button>
+      </div>
+      <div class="px-4 py-1 mt-2">
+        <button id="btn-confirm" onclick="confirmAssignment()"
+          class="w-full bg-secondary dark:bg-blue-800 text-on-secondary font-label-md text-label-md py-2 rounded-lg uppercase tracking-wide hover:bg-secondary-container dark:hover:bg-blue-700 transition-colors duration-200">
+          CONFIRM FIELD OP
+        </button>
+      </div>
+    </div>
+  </nav>
 
-<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200" id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle Dark Mode">
-<span class="material-symbols-outlined" id="theme-icon">dark_mode</span>
-</button>
-</div>
-</header>
+  <div class="flex-1 flex flex-col ml-64 min-w-0">
+    <!-- TopAppBar -->
+    <header
+      class="bg-surface dark:bg-neutral-900 border-b border-outline-variant dark:border-neutral-800 docked full-width top-0 flex justify-between items-center w-full px-gutter h-16 z-50 sticky transition-colors duration-300">
+      <div class="flex items-center gap-4">
+        <span id="lang-header-title"
+          class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary dark:text-red-500 uppercase tracking-tighter">PANTARA
+          COMMAND CENTER</span>
+        <div class="hidden lg:flex items-center gap-2 border-l border-outline-variant dark:border-neutral-700 pl-6">
+          <span class="material-symbols-outlined text-secondary dark:text-blue-400 text-sm">shield</span>
+          <span id="lang-quantum-guard"
+            class="text-status-sm font-status-sm text-on-surface-variant dark:text-neutral-400 uppercase tracking-widest">Quantum
+            Guard Active</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-gutter">
+        <div id="alert-banner"
+          class="hidden items-center gap-2 px-3 py-1 bg-error-container border border-error text-on-error-container rounded-full font-label-md text-label-md animate-pulse">
+          <span class="w-2 h-2 rounded-full bg-primary"></span>
+          <span id="alert-banner-text">Active Disaster</span>
+        </div>
 
-<!-- Main Content Canvas -->
-<main class="flex-1 p-gutter overflow-y-auto flex-col gap-gutter bg-background view flex" id="view-dashboard">
-<!-- Key Metrics Container -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
-<!-- Metric 1 -->
-<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-sm flex items-center gap-4">
-<div class="w-12 h-12 rounded-full bg-error-container text-on-error-container flex items-center justify-center shrink-0">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">warning</span>
-</div>
-<div>
-<p class="font-label-md text-label-md text-on-surface-variant">Active Alerts</p>
-<p class="font-headline-lg text-headline-lg text-primary" id="m-active-disasters">0</p>
-</div>
-</div>
-<!-- Metric 2 -->
-<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-sm flex items-center gap-4">
-<div class="w-12 h-12 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center shrink-0">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">campaign</span>
-</div>
-<div>
-<p class="font-label-md text-label-md text-on-surface-variant">Residents Notified</p>
-<p class="font-headline-lg text-headline-lg text-on-surface" id="m-notified">0</p>
-</div>
-</div>
-<!-- Metric 3 -->
-<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-sm flex items-center gap-4">
-<div class="w-12 h-12 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">local_police</span>
-</div>
-<div>
-<p class="font-label-md text-label-md text-on-surface-variant">Volunteers Deployed</p>
-<p class="font-headline-lg text-headline-lg text-on-surface" id="m-volunteers">0</p>
-</div>
-</div>
-<!-- Metric 4 -->
-<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-sm flex items-center gap-4">
-<div class="w-12 h-12 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center shrink-0 relative">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">health_and_safety</span>
-</div>
-<div>
-<p class="font-label-md text-label-md text-on-surface-variant">Critical Rescues</p>
-<p class="font-headline-lg text-headline-lg text-on-surface" id="m-vulnerable">0</p>
-</div>
-</div>
-</div>
-<!-- Main Layout: Map & Sidebar -->
-<div class="flex flex-col lg:flex-row gap-gutter flex-1 min-h-[600px]">
-<!-- Large Interactive GIS Map Area -->
-<div class="flex-[3] bg-surface-container-lowest border border-outline-variant rounded-lg flex flex-col overflow-hidden relative">
-<div class="p-sm border-b border-outline-variant flex justify-between items-center bg-surface-container-low z-10">
-<h3 class="font-title-md text-title-md text-on-surface flex items-center gap-2">
-<span class="material-symbols-outlined text-secondary">map</span>
-                            Tactical Overview Map
-                        </h3>
-<div class="flex gap-2">
-<span class="px-2 py-1 rounded bg-surface border border-outline-variant text-status-sm font-status-sm text-on-surface-variant">Layers: Risk Zones</span>
-<span class="px-2 py-1 rounded bg-surface border border-outline-variant text-status-sm font-status-sm text-on-surface-variant">Live: Vol. Positions</span>
-</div>
-</div>
-<!-- Pipeline Sub-Header -->
-<div class="bg-surface-container-lowest border-b border-outline-variant px-4 py-2 flex items-center justify-between text-xs font-semibold z-10 shrink-0">
-  <div class="flex items-center gap-2">
-    <span class="text-on-surface-variant uppercase tracking-wider text-[10px]">AI Pipeline:</span>
-    <div class="flex items-center gap-1">
-      <div id="status-monitor" class="px-2 py-1 rounded-full bg-surface-variant text-on-surface-variant transition-colors border border-outline-variant">Monitor</div>
-      <span class="material-symbols-outlined text-[12px] text-outline-variant">arrow_forward</span>
-      <div id="status-prediction" class="px-2 py-1 rounded-full bg-surface-variant text-on-surface-variant transition-colors border border-outline-variant">Predict</div>
-      <span class="material-symbols-outlined text-[12px] text-outline-variant">arrow_forward</span>
-      <div id="status-earlywarning" class="px-2 py-1 rounded-full bg-surface-variant text-on-surface-variant transition-colors border border-outline-variant">Warn</div>
-      <span class="material-symbols-outlined text-[12px] text-outline-variant">arrow_forward</span>
-      <div id="status-allocation" class="px-2 py-1 rounded-full bg-surface-variant text-on-surface-variant transition-colors border border-outline-variant">Allocate</div>
-      <span class="material-symbols-outlined text-[12px] text-outline-variant">arrow_forward</span>
-      <div id="status-communication" class="px-2 py-1 rounded-full bg-surface-variant text-on-surface-variant transition-colors border border-outline-variant">Report</div>
+        <!-- Real-time Clock (Filling the empty space) -->
+        <div class="flex flex-col items-end mr-4">
+          <div id="time-display"
+            class="font-mono text-lg font-bold text-on-surface dark:text-neutral-200 leading-tight">--:--:--</div>
+          <div class="text-[10px] text-on-surface-variant dark:text-neutral-500 uppercase tracking-[0.2em]">Real-time
+            Sync</div>
+        </div>
+
+        <button
+          class="flex items-center gap-2 px-3 py-1.5 rounded-full text-on-surface-variant dark:text-neutral-300 hover:bg-surface-container-high dark:hover:bg-neutral-800 transition-all duration-200 border border-outline-variant dark:border-neutral-800"
+          id="lang-toggle" onclick="toggleLanguage()" title="Switch Language">
+          <span class="material-symbols-outlined text-[18px]">language</span>
+          <span id="lang-label" class="text-[12px] font-bold tracking-tighter">ID</span>
+        </button>
+
+        <button
+          class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant dark:text-neutral-300 hover:bg-surface-container-high dark:hover:bg-neutral-800 transition-colors duration-200 border border-outline-variant dark:border-neutral-800"
+          id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle Dark Mode" title="Switch to Dark Mode">
+          <span class="material-symbols-outlined" id="theme-icon">dark_mode</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Canvas -->
+    <main
+      class="flex-1 p-gutter overflow-y-auto flex-col gap-gutter bg-background dark:bg-neutral-950 view flex transition-colors duration-300"
+      id="view-dashboard">
+      <!-- Key Metrics Container -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
+        <!-- Metric 1 -->
+        <div
+          class="bg-surface-container-lowest dark:bg-neutral-900 border border-outline-variant dark:border-neutral-800 rounded-lg p-sm flex items-center gap-4 transition-colors duration-300">
+          <div
+            class="w-12 h-12 rounded-full bg-error-container dark:bg-red-900/40 text-on-error-container dark:text-red-200 flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">warning</span>
+          </div>
+          <div>
+            <p id="lang-active-alerts"
+              class="font-label-md text-label-md text-on-surface-variant dark:text-neutral-400">Active Alerts</p>
+            <p class="font-headline-lg text-headline-lg text-primary dark:text-red-500" id="m-active-disasters">0</p>
+          </div>
+        </div>
+        <!-- Metric 2 -->
+        <div
+          class="bg-surface-container-lowest dark:bg-neutral-900 border border-outline-variant dark:border-neutral-800 rounded-lg p-sm flex items-center gap-4 transition-colors duration-300">
+          <div
+            class="w-12 h-12 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">campaign</span>
+          </div>
+          <div>
+            <p id="lang-notified" class="font-label-md text-label-md text-on-surface-variant dark:text-neutral-400">
+              Residents Notified</p>
+            <p class="font-headline-lg text-headline-lg text-on-surface dark:text-neutral-100" id="m-notified">0</p>
+          </div>
+        </div>
+        <!-- Metric 3 -->
+        <div
+          class="bg-surface-container-lowest dark:bg-neutral-900 border border-outline-variant dark:border-neutral-800 rounded-lg p-sm flex items-center gap-4 transition-colors duration-300">
+          <div
+            class="w-12 h-12 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">local_police</span>
+          </div>
+          <div>
+            <p id="lang-deployed" class="font-label-md text-label-md text-on-surface-variant dark:text-neutral-400">
+              Volunteers Deployed</p>
+            <p class="font-headline-lg text-headline-lg text-on-surface dark:text-neutral-100" id="m-volunteers">0</p>
+          </div>
+        </div>
+        <!-- Metric 4 -->
+        <div
+          class="bg-surface-container-lowest dark:bg-neutral-900 border border-outline-variant dark:border-neutral-800 rounded-lg p-sm flex items-center gap-4 transition-colors duration-300">
+          <div
+            class="w-12 h-12 rounded-full bg-surface-container-high dark:bg-neutral-800 text-on-surface dark:text-neutral-100 flex items-center justify-center shrink-0 relative">
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">health_and_safety</span>
+          </div>
+          <div>
+            <p id="lang-rescues" class="font-label-md text-label-md text-on-surface-variant dark:text-neutral-400">
+              Critical Rescues</p>
+            <p class="font-headline-lg text-headline-lg text-on-surface dark:text-neutral-100" id="m-vulnerable">0</p>
+          </div>
+        </div>
+      </div>
+      <!-- Main Layout: Map & Sidebar -->
+      <div class="flex flex-col lg:flex-row gap-gutter flex-1 min-h-[600px]">
+        <!-- Large Interactive GIS Map Area -->
+        <div
+          class="flex-[3] bg-surface-container-lowest dark:bg-neutral-900 border border-outline-variant dark:border-neutral-800 rounded-lg flex flex-col overflow-hidden relative transition-colors duration-300">
+          <div
+            class="p-sm border-b border-outline-variant dark:border-neutral-800 flex justify-between items-center bg-surface-container-low dark:bg-neutral-900 z-10">
+            <h3 id="lang-map-title"
+              class="font-title-md text-title-md text-on-surface dark:text-neutral-100 flex items-center gap-2">
+              <span class="material-symbols-outlined text-secondary dark:text-blue-400">map</span>
+              Tactical Overview Map
+            </h3>
+            <div class="flex gap-2">
+              <span
+                class="px-2 py-1 rounded bg-surface dark:bg-neutral-800 border border-outline-variant dark:border-neutral-700 text-status-sm font-status-sm text-on-surface-variant dark:text-neutral-400">Layers:
+                Risk Zones</span>
+              <span
+                class="px-2 py-1 rounded bg-surface dark:bg-neutral-800 border border-outline-variant dark:border-neutral-700 text-status-sm font-status-sm text-on-surface-variant dark:text-neutral-400">Live:
+                Vol. Positions</span>
+            </div>
+          </div>
+          <!-- Pipeline Sub-Header -->
+          <div
+            class="bg-surface-container-lowest dark:bg-neutral-900 border-b border-outline-variant dark:border-neutral-800 px-4 py-2 flex items-center justify-between text-xs font-semibold z-10 shrink-0">
+            <div class="flex items-center gap-2">
+              <span class="text-on-surface-variant dark:text-neutral-400 uppercase tracking-wider text-[10px]">AI
+                Pipeline:</span>
+              <div class="flex items-center gap-1">
+                <div id="status-monitor"
+                  class="px-2 py-1 rounded-full bg-surface-variant dark:bg-neutral-800 text-on-surface-variant dark:text-neutral-300 transition-colors border border-outline-variant dark:border-neutral-700">
+                  Monitor</div>
+                <span class="material-symbols-outlined text-[12px] text-outline-variant">arrow_forward</span>
+                <div id="status-prediction"
+                  class="px-2 py-1 rounded-full bg-surface-variant text-on-surface-variant transition-colors border border-outline-variant">
+                  Predict</div>
+                <span class="material-symbols-outlined text-[12px] text-outline-variant">arrow_forward</span>
+                <div id="status-earlywarning"
+                  class="px-2 py-1 rounded-full bg-surface-variant text-on-surface-variant transition-colors border border-outline-variant">
+                  Warn</div>
+                <span class="material-symbols-outlined text-[12px] text-outline-variant">arrow_forward</span>
+                <div id="status-allocation"
+                  class="px-2 py-1 rounded-full bg-surface-variant text-on-surface-variant transition-colors border border-outline-variant">
+                  Allocate</div>
+                <span class="material-symbols-outlined text-[12px] text-outline-variant">arrow_forward</span>
+                <div id="status-communication"
+                  class="px-2 py-1 rounded-full bg-surface-variant text-on-surface-variant transition-colors border border-outline-variant">
+                  Report</div>
+              </div>
+            </div>
+          </div>
+          <!-- Map Canvas Placeholder -->
+          <div id="map" class="flex-1 bg-surface-dim relative overflow-hidden" style="z-index: 1;">
+          </div>
+        </div>
+        <!-- BMKG Live Feed Sidebar -->
+        <div
+          class="flex-1 bg-surface-container-lowest dark:bg-neutral-900 border border-outline-variant dark:border-neutral-800 rounded-lg flex flex-col max-h-[600px] transition-colors duration-300">
+          <div
+            class="p-sm border-b border-outline-variant dark:border-neutral-800 bg-surface-container-low dark:bg-neutral-900 flex items-center gap-2 shrink-0">
+            <span class="material-symbols-outlined text-primary dark:text-red-500 animate-pulse">sensors</span>
+            <h3 id="lang-feed-title" class="font-title-md text-title-md text-on-surface dark:text-neutral-100">BMKG Live
+              Feed</h3>
+          </div>
+          <div id="alert-feed" class="flex-1 overflow-y-auto p-sm flex flex-col gap-sm">
+            <div class="text-on-surface-variant dark:text-neutral-400 text-sm text-center py-8">Menunggu data
+              simulasi...</div>
+          </div>
+        </div>
+      </div>
+      <!-- Active Disaster Events Table -->
+      <div
+        class="bg-surface-container-lowest dark:bg-neutral-900 border border-outline-variant dark:border-neutral-800 rounded-lg overflow-hidden flex flex-col transition-colors duration-300">
+        <div
+          class="p-sm border-b border-outline-variant dark:border-neutral-800 bg-surface-container-low dark:bg-neutral-900 flex justify-between items-center">
+          <h3 id="lang-log-title"
+            class="font-title-md text-title-md text-on-surface dark:text-neutral-100 flex items-center gap-2">
+            <span class="material-symbols-outlined text-on-surface-variant dark:text-neutral-400">view_list</span>
+            Active Disaster Events Log
+          </h3>
+          <span class="font-label-md text-label-md text-secondary dark:text-blue-400" id="alert-total-count">0
+            alert</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr
+                class="border-b border-outline-variant dark:border-neutral-800 bg-surface-container-lowest dark:bg-neutral-900 font-label-md text-label-md text-on-surface-variant dark:text-neutral-400">
+                <th class="p-3 font-semibold">Waktu</th>
+                <th class="p-3 font-semibold">Event ID</th>
+                <th class="p-3 font-semibold">Level</th>
+                <th class="p-3 font-semibold">Lokasi</th>
+                <th class="p-3 font-semibold">Ternotifikasi</th>
+                <th class="p-3 font-semibold">Kritis</th>
+              </tr>
+            </thead>
+            <tbody id="alert-table-body" class="font-body-md text-body-md text-on-surface dark:text-neutral-200">
+              <tr>
+                <td colspan="6" class="p-4 text-center text-on-surface-variant dark:text-neutral-400">Jalankan simulasi
+                  untuk melihat alert
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+
+    <main
+      class="flex-1 p-gutter overflow-hidden flex-col gap-gutter bg-background dark:bg-neutral-950 view hidden transition-colors duration-300"
+      id="view-audit">
+      <div
+        class="bg-surface-container-lowest dark:bg-neutral-900 border border-outline-variant dark:border-neutral-800 rounded-lg flex flex-col min-h-[600px] transition-colors duration-300">
+        <div
+          class="p-sm border-b border-outline-variant dark:border-neutral-800 bg-surface-container-low dark:bg-neutral-900 flex items-center gap-2">
+          <span class="material-symbols-outlined text-on-surface-variant dark:text-neutral-400">history_edu</span>
+          <h3 id="lang-audit-title" class="font-title-md text-title-md text-on-surface dark:text-neutral-100">System
+            Audit Logs</h3>
+        </div>
+        <div id="audit-feed" class="flex-1 overflow-y-auto p-sm flex flex-col gap-2">
+          <div class="text-on-surface-variant text-sm text-center py-8">Menunggu log sistem...</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- AI Report Side Panel -->
+  <div id="report-container"
+    class="fixed inset-y-0 right-0 w-full max-w-md bg-surface-container-lowest dark:bg-neutral-900 shadow-2xl border-l border-outline-variant dark:border-neutral-800 transform translate-x-full transition-transform duration-300 z-[70] flex flex-col">
+    <div
+      class="p-4 border-b border-outline-variant dark:border-neutral-800 bg-surface-container-low dark:bg-neutral-900 flex justify-between items-center shrink-0">
+      <div class="flex items-center gap-2 text-primary dark:text-red-500">
+        <span class="material-symbols-outlined animate-pulse">smart_toy</span>
+        <h3 class="font-title-md text-title-md text-on-surface dark:text-neutral-100">Pantara AI Intelligence</h3>
+      </div>
+      <button onclick="closeReport()"
+        class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant dark:text-neutral-400 hover:bg-surface-variant dark:hover:bg-neutral-800 transition-colors">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="flex-1 overflow-y-auto p-4 bg-background dark:bg-neutral-950">
+      <pre id="report-content"
+        class="whitespace-pre-wrap font-body-md text-body-md text-on-surface-variant dark:text-neutral-300 font-sans">Menunggu laporan...</pre>
+    </div>
+    <div
+      class="p-4 border-t border-outline-variant dark:border-neutral-800 bg-surface-container-lowest dark:bg-neutral-900 shrink-0">
+      <button
+        class="w-full bg-primary text-on-primary font-label-md py-2 rounded-lg hover:bg-primary-container transition-colors shadow flex items-center justify-center gap-2">
+        <span class="material-symbols-outlined text-[18px]">share</span> Broadcast Report
+      </button>
     </div>
   </div>
-</div>
-<!-- Map Canvas Placeholder -->
-<div id="map" class="flex-1 bg-surface-dim relative overflow-hidden" style="z-index: 1;">
-</div>
-</div>
-<!-- BMKG Live Feed Sidebar -->
-<div class="flex-1 bg-surface-container-lowest border border-outline-variant rounded-lg flex flex-col max-h-[600px]">
-<div class="p-sm border-b border-outline-variant bg-surface-container-low flex items-center gap-2 shrink-0">
-<span class="material-symbols-outlined text-primary animate-pulse">sensors</span>
-<h3 class="font-title-md text-title-md text-on-surface">BMKG Live Feed</h3>
-</div>
-<div id="alert-feed" class="flex-1 overflow-y-auto p-sm flex flex-col gap-sm">
-<div class="text-on-surface-variant text-sm text-center py-8">Menunggu data simulasi...</div>
-</div>
-</div>
-</div>
-<!-- Active Disaster Events Table -->
-<div class="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden flex flex-col">
-<div class="p-sm border-b border-outline-variant bg-surface-container-low flex justify-between items-center">
-<h3 class="font-title-md text-title-md text-on-surface flex items-center gap-2">
-<span class="material-symbols-outlined text-on-surface-variant">view_list</span>
-                        Active Disaster Events Log
-                    </h3>
-<span class="font-label-md text-label-md text-secondary" id="alert-total-count">0 alert</span>
-</div>
-<div class="overflow-x-auto">
-<table class="w-full text-left border-collapse">
-<thead>
-<tr class="border-b border-outline-variant bg-surface-container-lowest font-label-md text-label-md text-on-surface-variant">
-<th class="p-3 font-semibold">Waktu</th>
-<th class="p-3 font-semibold">Event ID</th>
-<th class="p-3 font-semibold">Level</th>
-<th class="p-3 font-semibold">Lokasi</th>
-<th class="p-3 font-semibold">Ternotifikasi</th>
-<th class="p-3 font-semibold">Kritis</th>
-</tr>
-</thead>
-<tbody id="alert-table-body" class="font-body-md text-body-md text-on-surface">
-<tr><td colspan="6" class="p-4 text-center text-on-surface-variant">Jalankan simulasi untuk melihat alert</td></tr>
-</tbody>
-</table>
-</div>
-</div>
-</div>
-</main>
 
-<main class="flex-1 p-gutter overflow-y-auto flex-col gap-gutter bg-background view hidden" id="view-audit">
-  <div class="bg-surface-container-lowest border border-outline-variant rounded-lg flex flex-col min-h-[600px]">
-    <div class="p-sm border-b border-outline-variant bg-surface-container-low flex items-center gap-2">
-      <span class="material-symbols-outlined text-on-surface-variant">history_edu</span>
-      <h3 class="font-title-md text-title-md text-on-surface">System Audit Logs</h3>
+  <!-- Simulation Results Toast -->
+  <div id="sim-results"
+    class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#0f172a] text-white px-6 py-4 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] flex items-center gap-6 z-[60] hidden border border-white/20 backdrop-blur-xl">
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined text-[#22c55e] text-[28px]">verified</span>
+      <div class="flex flex-col">
+        <span class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Status Pipeline</span>
+        <span class="font-bold text-sm">Selesai: <span id="r-elapsed" class="text-orange-400">--</span></span>
+      </div>
     </div>
-    <div id="audit-feed" class="flex-1 overflow-y-auto p-sm flex flex-col gap-2">
-      <div class="text-on-surface-variant text-sm text-center py-8">Menunggu log sistem...</div>
-    </div>
-  </div>
-</main>
-</div>
 
-<!-- AI Report Side Panel -->
-<div id="report-container" class="fixed inset-y-0 right-0 w-full max-w-md bg-surface-container-lowest shadow-2xl border-l border-outline-variant transform translate-x-full transition-transform duration-300 z-[70] flex flex-col">
-  <div class="p-4 border-b border-outline-variant bg-surface-container-low flex justify-between items-center shrink-0">
-    <div class="flex items-center gap-2 text-primary">
-      <span class="material-symbols-outlined animate-pulse">smart_toy</span>
-      <h3 class="font-title-md text-title-md text-on-surface">Gemini AI Report</h3>
+    <div class="w-px h-10 bg-white/10"></div>
+
+    <div class="flex gap-6">
+      <div class="flex flex-col">
+        <span class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Ternotifikasi</span>
+        <span id="r-notified" class="font-black text-lg text-white">--</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Kritis</span>
+        <span id="r-critical" class="font-black text-lg text-[#ff4b4b]">--</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Relawan</span>
+        <span id="r-volunteers" class="font-black text-lg text-[#38bdf8]">--</span>
+      </div>
     </div>
-    <button onclick="closeReport()" class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-variant transition-colors">
+
+    <button onclick="closeSimResults()"
+      class="ml-2 hover:bg-white/10 rounded-full w-8 h-8 flex items-center justify-center transition-all hover:scale-110 text-slate-400 hover:text-white">
       <span class="material-symbols-outlined">close</span>
     </button>
   </div>
-  <div class="flex-1 overflow-y-auto p-4 bg-background">
-    <pre id="report-content" class="whitespace-pre-wrap font-body-md text-body-md text-on-surface-variant font-sans">Menunggu laporan...</pre>
-  </div>
-  <div class="p-4 border-t border-outline-variant bg-surface-container-lowest shrink-0">
-    <button class="w-full bg-primary text-on-primary font-label-md py-2 rounded-lg hover:bg-primary-container transition-colors shadow flex items-center justify-center gap-2">
-      <span class="material-symbols-outlined text-[18px]">share</span> Broadcast Report
-    </button>
-  </div>
-</div>
 
-<!-- Simulation Results Toast -->
-<div id="sim-results" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 z-[60] hidden">
-  <span class="material-symbols-outlined text-primary">task_alt</span>
-  <span class="font-label-md">Pipeline Executed: <span id="r-elapsed" class="text-inverse-primary font-bold">--</span></span>
-  <span class="w-px h-4 bg-outline-variant opacity-50"></span>
-  <div class="flex gap-3 text-xs text-on-surface-variant">
-    <span>Notified: <strong id="r-notified" class="text-inverse-on-surface">--</strong></span>
-    <span>Critical: <strong id="r-critical" class="text-error">--</strong></span>
-    <span>Deployed: <strong id="r-volunteers" class="text-secondary-fixed">--</strong></span>
-  </div>
-</div>
-
-<!-- Load scripts -->
-<script src="js/map.js"></script>
-<script src="js/charts.js"></script>
-<script src="js/dashboard.js"></script>
+  <!-- Load scripts -->
+  <script src="js/map.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/dashboard.js"></script>
 </body>
+
 </html>

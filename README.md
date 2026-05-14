@@ -1,15 +1,15 @@
-# DisasterReady 🚨
+# Pantara 🚨
 
 **Sistem Koordinasi Respons Bencana Otonom dengan Early Warning**
 
 > Kategori: AI for Environmental & Social Impact — Mahasiswa/i Sederajat
-> Tim: DisasterReady Team | April 2026
+> Tim: Pantara Team | April 2026
 
 ---
 
 ## Deskripsi
 
-DisasterReady adalah sistem multi-agent otonom yang menjembatani gap kritis dalam sistem peringatan dini bencana Indonesia. BMKG sudah punya datanya — warga belum dapat notifikasinya. DisasterReady adalah jembatan itu.
+Pantara adalah sistem multi-agent otonom yang menjembatani gap kritis dalam sistem peringatan dini bencana Indonesia. BMKG sudah punya datanya — warga belum dapat notifikasinya. Pantara adalah jembatan itu.
 
 **Masalah yang dipecahkan:**
 - 1.942 kejadian bencana di Indonesia (2024, data BNPB), berdampak pada 5,64 juta jiwa
@@ -47,7 +47,7 @@ BMKG API ──► MonitorAgent ──► OrchestratorAgent
 
 ```bash
 git clone <repo-url>
-cd DisasterReady-main
+cd Pantara-main
 
 # Buat virtual environment
 python -m venv venv
@@ -75,7 +75,7 @@ python data/generate_synthetic.py
 ```bash
 python api/main.py
 # atau:
-uvicorn api.main:app --reload --port 8000
+ uvicorn api.main:app --reload --port 8000
 
 # Buka browser:
 # http://localhost:8000/dashboard

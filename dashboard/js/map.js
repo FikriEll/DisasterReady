@@ -7,6 +7,8 @@
  */
 
 let map = null;
+let tileLayer = null;
+let labelsLayer = null;
 let riskLayers = {};
 let volunteerMarkers = [];
 let userInteractedMap = false;
@@ -36,21 +38,40 @@ function initMap() {
     userInteractedMap = true;
   });
 
-  // Tile layer dengan tema gelap
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 18,
-    subdomains: 'abcd',
-  }).addTo(map);
-
-  // Labels layer (untuk nama kota)
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
-    maxZoom: 18,
-    subdomains: 'abcd',
-    opacity: 0.6,
-  }).addTo(map);
+  // Tentukan tema awal berdasarkan localStorage atau default 'light'
+  const currentTheme = localStorage.getItem('pantara_bencana_theme') || 'light';
+  switchMapTheme(currentTheme);
 
   // Tambahkan marker kecamatan default
   addDefaultDistrictMarkers();
+}
+
+function switchMapTheme(theme) {
+  if (!map) return;
+
+  // Hapus layer lama jika ada
+  if (tileLayer) map.removeLayer(tileLayer);
+  if (labelsLayer) map.removeLayer(labelsLayer);
+
+  const isDark = theme === 'dark';
+  const tileUrl = isDark 
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+  
+  const labelsUrl = isDark
+    ? 'https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png';
+
+  tileLayer = L.tileLayer(tileUrl, {
+    maxZoom: 18,
+    subdomains: 'abcd',
+  }).addTo(map);
+
+  labelsLayer = L.tileLayer(labelsUrl, {
+    maxZoom: 18,
+    subdomains: 'abcd',
+    opacity: isDark ? 0.6 : 0.4,
+  }).addTo(map);
 }
 
 function addDefaultDistrictMarkers() {

@@ -1,5 +1,5 @@
 """
-DisasterReady — Allocation Agent
+Pantara — Allocation Agent
 Optimasi penugasan dan routing relawan ke lokasi terdampak.
 
 Tools:

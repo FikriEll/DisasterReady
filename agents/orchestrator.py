@@ -1,5 +1,5 @@
 """
-DisasterReady — Orchestrator Agent
+Pantara — Orchestrator Agent
 Koordinator utama seluruh sistem multi-agent.
 
 Peran:
@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 class OrchestratorAgent:
     """
-    Orchestrator: koordinator multi-agent DisasterReady.
+    Orchestrator: koordinator multi-agent Pantara.
 
     Menjalankan pipeline respons bencana secara berurutan dan paralel
     sesuai dependency antar agen:

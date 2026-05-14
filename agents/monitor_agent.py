@@ -1,5 +1,5 @@
 """
-DisasterReady — Monitor Agent
+Pantara — Monitor Agent
 Memantau data BMKG secara berkala dan mendeteksi anomali cuaca.
 
 Peran: Polling data BMKG/BNPB setiap 5 menit, parsing status Waspada/Siaga/Awas,

@@ -1,5 +1,5 @@
 """
-DisasterReady — FastAPI Backend
+Pantara — FastAPI Backend
 REST API untuk orkestrasi sistem, SSE dashboard, dan endpoint simulasi.
 
 Penyedia: FastAPI (Sebastián Ramírez) | https://fastapi.tiangolo.com
@@ -27,9 +27,14 @@ from agents.orchestrator import create_orchestrator
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 # ── Global State ──────────────────────────────────────────────────────────────
-firebase = FirebaseClient(simulation_mode=True)
-bmkg_client = BMKGClient(simulation_mode=True)
+_sim_mode = os.getenv("SIMULATION_MODE", "true").lower() == "true"
+firebase = FirebaseClient(simulation_mode=_sim_mode)
+bmkg_client = BMKGClient(simulation_mode=_sim_mode)
 residents = []
 volunteers = []
 orchestrator = None
@@ -71,15 +76,15 @@ async def lifespan(app: FastAPI):
         firebase=firebase,
         residents=residents,
         volunteers=volunteers,
-        simulation_mode=True,
+        simulation_mode=_sim_mode,
     )
-    logger.info("🚀 DisasterReady API Server siap!")
+    logger.info(f"🚀 Pantara API Server siap! [SIMULATION_MODE={_sim_mode}]")
     yield
     logger.info("🛑 Server shutting down...")
 
 
 app = FastAPI(
-    title="DisasterReady API",
+    title="Pantara API",
     description="Sistem Koordinasi Respons Bencana Otonom — Multi-Agent AI",
     version="1.0.0",
     lifespan=lifespan,
